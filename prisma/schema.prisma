@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Example model for the Anchor app
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationship to children
+  children  Child[]
+
+  // Collaboration relationships
+  collaborations Collaboration[]
+
+  @@map("users")
+}
+
+model Child {
+  id             String   @id @default(cuid())
+  name           String
+  dateOfBirth    DateTime?
+  diagnosis      String?
+  allergies      String?
+  bloodType      String?
+  currentWeight  Float?
+  currentHeight  Float?
+  headCirc       Float?
+
+  // Key medical information
+  ngTubePlacement String?
+  keyNotes       String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relationships
+  parentId       String
+  parent         User     @relation(fields: [parentId], references: [id])
+
+  // Medical records
+  medications    Medication[]
+  appointments   Appointment[]
+  todos          Todo[]
+  notes          Note[]
+  questions      Question[]
+
+  @@map("children")
+}
+
+model Collaboration {
+  id        String   @id @default(cuid())
+  userId    String
+  childId   String
+  role      String   // "parent", "caregiver", "nurse", etc.
+
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, childId])
+  @@map("collaborations")
+}
+
+model Medication {
+  id        String   @id @default(cuid())
+  name      String
+  dosage    String
+  timing    String
+  isPRN     Boolean  @default(false)
+  notes     String?
+
+  childId   String
+  child     Child    @relation(fields: [childId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("medications")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  datetime    DateTime
+  location    String?
+  specialist  String?
+
+  childId     String
+  child       Child    @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("appointments")
+}
+
+model Todo {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  priority    String   @default("medium") // low, medium, high, urgent
+  assignedTo  String?
+  dueDate     DateTime?
+
+  childId     String
+  child       Child    @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  @@map("todos")
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String?
+  content     String
+  type        String   @default("general") // general, medical, follow-up, etc.
+  tags        String[] // Array of tags for filtering
+  isPinned    Boolean  @default(false)
+
+  childId     String
+  child       Child    @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("notes")
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String?
+  specialist  String?  // Which specialist this is for
+  status      String   @default("pending") // pending, answered, archived
+  tags        String[] // Array of tags for filtering
+
+  childId     String
+  child       Child    @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  answeredAt  DateTime?
+
+  @@map("questions")
+}
