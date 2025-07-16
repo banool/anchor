@@ -5,11 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { AuthProvider } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import {
-    initializeCrashlytics,
-    initializeRemoteConfig,
-    setCrashlyticsAttribute
+  initializeCrashlytics,
+  initializeGoogleSignIn,
+  initializeRemoteConfig,
+  setCrashlyticsAttribute
 } from '@/lib/firebase';
 
 export default function RootLayout() {
@@ -24,6 +26,9 @@ export default function RootLayout() {
       try {
         // Initialize Crashlytics
         initializeCrashlytics();
+
+        // Initialize Google Sign-In
+        initializeGoogleSignIn();
 
         // Set app version for crash reporting
         setCrashlyticsAttribute('app_version', '1.0.0');
@@ -47,13 +52,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="smart-entry" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="smart-entry" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

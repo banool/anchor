@@ -51,6 +51,97 @@ const withErrorHandling = async <T>(
   }
 }
 
+// User operations
+export const createUser = async (data: {
+  email: string
+  name?: string | null
+  avatar?: string | null
+  phone?: string | null
+  firebaseUid: string
+}) => {
+  return withErrorHandling(
+    'createUser',
+    async () => {
+      return await prisma.user.create({
+        data: {
+          email: data.email,
+          name: data.name || null,
+          avatar: data.avatar || null,
+          phone: data.phone || null,
+          // Note: firebaseUid is not in the current schema, but we'll handle it in the context
+        }
+      })
+    },
+    {
+      email: data.email,
+      hasName: data.name ? 'true' : 'false',
+      hasAvatar: data.avatar ? 'true' : 'false',
+      hasPhone: data.phone ? 'true' : 'false'
+    }
+  )
+}
+
+export const getUserByEmail = async (email: string) => {
+  return withErrorHandling(
+    'getUserByEmail',
+    async () => {
+      return await prisma.user.findMany({
+        where: {
+          email,
+          ...withoutDeleted
+        }
+      })
+    },
+    {
+      email
+    }
+  )
+}
+
+export const getUserById = async (id: string) => {
+  return withErrorHandling(
+    'getUserById',
+    async () => {
+      return await prisma.user.findUnique({
+        where: {
+          id,
+          ...withoutDeleted
+        }
+      })
+    },
+    {
+      userId: id
+    }
+  )
+}
+
+export const updateUser = async (id: string, data: {
+  name?: string | null
+  avatar?: string | null
+  phone?: string | null
+}) => {
+  return withErrorHandling(
+    'updateUser',
+    async () => {
+      return await prisma.user.update({
+        where: {
+          id,
+          ...withoutDeleted
+        },
+        data
+      })
+    },
+    {
+      userId: id,
+      updateFields: Object.keys(data).join(',')
+    }
+  )
+}
+
+export const deleteUser = async (id: string) => {
+  return await softDelete(prisma.user, id)
+}
+
 // Entry operations
 export const getEntries = async (childId: string, filters?: {
   tags?: string[]

@@ -1,6 +1,6 @@
 # Firebase Setup Guide for Anchor App
 
-This guide will walk you through setting up Firebase for your Anchor app with Cloud SQL + Data Connect, Firebase Crashlytics, and Firebase Remote Config.
+This guide will walk you through setting up Firebase for your Anchor app with Cloud SQL + Data Connect, Firebase Authentication, Firebase Crashlytics, and Firebase Remote Config.
 
 ## Prerequisites
 
@@ -25,7 +25,43 @@ This guide will walk you through setting up Firebase for your Anchor app with Cl
    - `GoogleService-Info.plist` for iOS
 4. Place these files in your project root directory
 
-## 2. Cloud SQL Setup
+## 2. Firebase Authentication Setup
+
+### Step 1: Enable Authentication
+1. In the Firebase console, go to "Authentication"
+2. Click "Get started"
+3. Go to "Sign-in method" tab
+4. Enable the following providers:
+   - **Google**: Click "Enable", then configure
+   - **Apple**: Click "Enable" (iOS only)
+
+### Step 2: Configure Google Sign-In
+1. In the Google provider settings:
+   - Copy the "Web client ID"
+   - Add this to your environment variables as `GOOGLE_WEB_CLIENT_ID`
+2. Update your `app.json` with the correct iOS URL scheme:
+   ```json
+   {
+     "expo": {
+       "plugins": [
+         [
+           "@react-native-google-signin/google-signin",
+           {
+             "iosUrlScheme": "com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID"
+           }
+         ]
+       ]
+     }
+   }
+   ```
+
+### Step 3: Configure Apple Sign-In (iOS Only)
+1. In the Apple provider settings:
+   - Add your iOS bundle ID
+   - Add your team ID
+   - Configure the key ID and private key
+
+## 3. Cloud SQL Setup
 
 ### Step 1: Create Cloud SQL Instance
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
@@ -51,7 +87,7 @@ This guide will walk you through setting up Firebase for your Anchor app with Cl
 3. Create a PostgreSQL user with username and password
 4. Grant necessary permissions
 
-## 3. Firebase Data Connect Setup
+## 4. Firebase Data Connect Setup
 
 ### Step 1: Enable Data Connect
 1. In the Firebase console, go to "Data Connect"
@@ -99,12 +135,13 @@ firebase init
 firebase deploy --only dataconnect
 ```
 
-## 4. Firebase Services Setup
+## 5. Firebase Services Setup
 
 ### Step 1: Enable Firebase Services
 In the Firebase console, enable:
-1. **Crashlytics**: Go to Quality > Crashlytics > Enable
-2. **Remote Config**: Go to Engage > Remote Config > Get started
+1. **Authentication**: Already enabled from step 2
+2. **Crashlytics**: Go to Quality > Crashlytics > Enable
+3. **Remote Config**: Go to Engage > Remote Config > Get started
 
 ### Step 2: Configure Remote Config
 1. In Remote Config, add the following parameters:
@@ -116,7 +153,7 @@ In the Firebase console, enable:
 
 2. Publish the configuration
 
-## 5. Environment Configuration
+## 6. Environment Configuration
 
 ### Step 1: Create Environment File
 Copy the provided `env.example` file to `.env` and update with your values:
@@ -141,6 +178,9 @@ FIREBASE_MESSAGING_SENDER_ID="your_sender_id"
 FIREBASE_APP_ID="your_app_id"
 FIREBASE_MEASUREMENT_ID="G-your_measurement_id"
 
+# Google Sign-In Configuration
+GOOGLE_WEB_CLIENT_ID="your_google_web_client_id.apps.googleusercontent.com"
+
 # Cloud SQL Configuration
 CLOUD_SQL_CONNECTION_NAME="your_project_id:region:anchor-db-instance"
 CLOUD_SQL_DATABASE_NAME="anchor_db"
@@ -148,10 +188,10 @@ CLOUD_SQL_USER="your_cloud_sql_user"
 CLOUD_SQL_PASSWORD="your_cloud_sql_password"
 ```
 
-## 6. Database Migration
+## 7. Database Migration
 
 ### Step 1: Run Prisma Migration
-Since you're switching from Supabase to Cloud SQL, you'll need to run the database migration:
+Since you're switching from Supabase to Firebase, you'll need to run the database migration:
 
 ```bash
 # Generate Prisma client
@@ -172,7 +212,7 @@ Check that your database is properly configured:
 pnpm db:studio
 ```
 
-## 7. Build and Test
+## 8. Build and Test
 
 ### Step 1: Build Development Client
 Since you're using React Native Firebase, you need to build a development client:
@@ -186,16 +226,35 @@ npx expo run:android
 ```
 
 ### Step 2: Test Firebase Services
-1. **Crashlytics**: Check the Firebase console after running the app
-2. **Remote Config**: Verify config values are loaded in the app
-3. **Data Connect**: Test database operations
+1. **Authentication**: Test Google and Apple sign-in
+2. **Crashlytics**: Check the Firebase console after running the app
+3. **Remote Config**: Verify config values are loaded in the app
+4. **Data Connect**: Test database operations
 
-## 8. Production Deployment
+## 9. Authentication Flow
+
+The app now includes a complete authentication system:
+
+### Features Implemented:
+- **Google Sign-In**: Social login with Google accounts
+- **Apple Sign-In**: Social login with Apple ID (iOS only)
+- **User Management**: Automatic user creation and database integration
+- **Authentication State**: Persistent login state management
+- **Route Protection**: Authenticated routes with automatic redirects
+
+### Authentication Flow:
+1. User opens app → Redirected to login screen if not authenticated
+2. User signs in with Google/Apple → User record created in database
+3. User is redirected to main app with full access
+4. User can sign out from profile section
+
+## 10. Production Deployment
 
 ### Step 1: App Store Configuration
 1. Add the configuration files to your iOS/Android projects
 2. Update `app.json` with your bundle identifiers
-3. Build and submit to app stores
+3. Configure proper signing certificates
+4. Build and submit to app stores
 
 ### Step 2: Firebase Security Rules
 Set up appropriate security rules for your Firebase services.
@@ -204,10 +263,22 @@ Set up appropriate security rules for your Firebase services.
 
 ### Common Issues
 
-1. **Build Errors**: Make sure you have the latest Expo CLI and React Native Firebase
-2. **Database Connection**: Verify your Cloud SQL instance is running and accessible
-3. **Crashlytics Not Working**: Check that the app is properly configured with Firebase
-4. **Remote Config Not Loading**: Ensure you've published the configuration
+1. **Authentication Errors**:
+   - Check that Google/Apple sign-in is properly configured
+   - Verify environment variables are set correctly
+   - Ensure bundle IDs match in Firebase console
+
+2. **Build Errors**:
+   - Make sure you have the latest Expo CLI and React Native Firebase
+   - Verify all native dependencies are properly installed
+
+3. **Database Connection**:
+   - Verify your Cloud SQL instance is running and accessible
+   - Check that Data Connect is properly configured
+
+4. **Navigation Issues**:
+   - Ensure all route files are properly created
+   - Check that authentication context is properly wrapped
 
 ### Debug Commands
 
@@ -220,11 +291,15 @@ pnpm db:studio
 
 # Verify Prisma client
 pnpm db:generate
+
+# Check authentication state
+# Look at the app logs for authentication status
 ```
 
 ## Support
 
 - [Firebase Documentation](https://firebase.google.com/docs)
+- [Firebase Authentication](https://firebase.google.com/docs/auth)
 - [Cloud SQL Documentation](https://cloud.google.com/sql/docs)
 - [Expo Firebase Guide](https://docs.expo.dev/guides/using-firebase/)
 - [React Native Firebase](https://rnfirebase.io/)
@@ -232,9 +307,10 @@ pnpm db:generate
 ## Next Steps
 
 Once setup is complete, you can:
-1. Start developing with the Firebase-powered database
-2. Use Remote Config for feature flags
-3. Monitor crashes with Crashlytics
-4. Scale your Cloud SQL instance as needed
+1. Start using the authentication system for user management
+2. Implement collaboration features with user invitations
+3. Use Remote Config for feature flags and A/B testing
+4. Monitor app performance and crashes with Crashlytics
+5. Scale your Cloud SQL instance as needed
 
-The app is now fully migrated from Supabase to Firebase with Cloud SQL + Data Connect!
+The app now has a complete authentication system integrated with Firebase and is ready for user management and collaboration features!

@@ -1,8 +1,10 @@
 import { initializeApp as initializeJSApp } from '@firebase/app';
 import { connectDataConnectEmulator, DataConnect, getDataConnect } from '@firebase/data-connect';
 import { initializeApp } from '@react-native-firebase/app';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import crashlytics from '@react-native-firebase/crashlytics';
 import remoteConfig from '@react-native-firebase/remote-config';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 // Firebase configuration
 // Replace these values with your own Firebase project configuration
@@ -56,6 +58,22 @@ try {
   console.error('Data Connect initialization error:', error);
 }
 
+// Initialize Google Sign-In
+export const initializeGoogleSignIn = () => {
+  try {
+    GoogleSignin.configure({
+      webClientId: process.env.GOOGLE_WEB_CLIENT_ID, // From Firebase console
+      offlineAccess: true,
+      hostedDomain: '',
+      forceCodeForRefreshToken: true,
+    });
+
+    console.log('Google Sign-In configured');
+  } catch (error) {
+    console.error('Google Sign-In configuration error:', error);
+  }
+};
+
 // Initialize Crashlytics
 export const initializeCrashlytics = () => {
   try {
@@ -101,6 +119,86 @@ export const initializeRemoteConfig = async () => {
   } catch (error) {
     console.error('Remote Config initialization error:', error);
   }
+};
+
+// Authentication functions
+export const signInWithGoogle = async (): Promise<FirebaseAuthTypes.UserCredential> => {
+  try {
+    // Check if your device supports Google Play
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+    // Get the users ID token
+    const signInResult = await GoogleSignin.signIn();
+
+    if (!signInResult.data?.idToken) {
+      throw new Error('Google Sign-In failed - no ID token returned');
+    }
+
+    // Create a Google credential with the token
+    const googleCredential = auth.GoogleAuthProvider.credential(signInResult.data.idToken);
+
+    // Sign-in the user with the credential
+    return auth().signInWithCredential(googleCredential);
+  } catch (error) {
+    console.error('Google Sign-In error:', error);
+    throw error;
+  }
+};
+
+export const signInWithApple = async (): Promise<FirebaseAuthTypes.UserCredential> => {
+  try {
+    const { AppleAuthentication } = require('expo-apple-authentication');
+
+    // Start the sign-in request
+    const appleAuthRequestResponse = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    // Ensure Apple returned a user identityToken
+    if (!appleAuthRequestResponse.identityToken) {
+      throw new Error('Apple Sign-In failed - no identify token returned');
+    }
+
+    // Create a Firebase credential from the response
+    const { identityToken, nonce } = appleAuthRequestResponse;
+    const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
+
+    // Sign the user in with the credential
+    return auth().signInWithCredential(appleCredential);
+  } catch (error) {
+    console.error('Apple Sign-In error:', error);
+    throw error;
+  }
+};
+
+export const signOut = async (): Promise<void> => {
+  try {
+    // Sign out from Google
+    try {
+      await GoogleSignin.signOut();
+    } catch (error) {
+      console.warn('Google sign out error:', error);
+    }
+
+    // Sign out from Firebase
+    await auth().signOut();
+
+    console.log('User signed out successfully');
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw error;
+  }
+};
+
+export const getCurrentUser = (): FirebaseAuthTypes.User | null => {
+  return auth().currentUser;
+};
+
+export const onAuthStateChanged = (callback: (user: FirebaseAuthTypes.User | null) => void) => {
+  return auth().onAuthStateChanged(callback);
 };
 
 // Remote Config helpers
@@ -168,5 +266,5 @@ export const setCrashlyticsUserId = (userId: string) => {
   }
 };
 
-export { crashlytics, remoteConfig };
+export { auth, crashlytics, remoteConfig };
 export default app;
