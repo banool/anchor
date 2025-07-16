@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file for Anchor App
+// Comprehensive schema matching the PRD requirements
 
 generator client {
   provider = "prisma-client-js"
@@ -14,153 +11,344 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example model for the Anchor app
+// Core user model
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  avatar    String?
+  phone     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relationship to children
-  children  Child[]
-
-  // Collaboration relationships
-  collaborations Collaboration[]
-
-  @@map("users")
-}
-
-model Child {
-  id             String   @id @default(cuid())
-  name           String
-  dateOfBirth    DateTime?
-  diagnosis      String?
-  allergies      String?
-  bloodType      String?
-  currentWeight  Float?
-  currentHeight  Float?
-  headCirc       Float?
-
-  // Key medical information
-  ngTubePlacement String?
-  keyNotes       String?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  deletedAt DateTime? // Soft deletion
 
   // Relationships
-  parentId       String
-  parent         User     @relation(fields: [parentId], references: [id])
-
-  // Medical records
-  medications    Medication[]
-  appointments   Appointment[]
-  todos          Todo[]
-  notes          Note[]
-  questions      Question[]
-
-  @@map("children")
+  ownedChildren       Child[]
+  collaborations      Collaboration[]
+  entries             Entry[]
+  assignedEntries     Entry[]           @relation("AssignedEntries")
+  assignedByEntries   Entry[]           @relation("AssignedByEntries")
+  messages            Message[]
+  notifications       Notification[]
+  invitationsSent     Invitation[]      @relation("InvitationSender")
+  invitationsReceived Invitation[]      @relation("InvitationReceiver")
 }
 
+// Child model with comprehensive medical info
+model Child {
+  id                String    @id @default(cuid())
+  name              String
+  dateOfBirth       DateTime?
+  diagnosis         String?
+  allergies         String?
+  bloodType         String?
+
+  // Current measurements
+  currentWeight     Float?
+  currentHeight     Float?
+  headCircumference Float?
+
+  // Medical device info
+  ngTubePlacement   String?
+  keyMedicalNotes   String?
+
+  // Emergency info
+  emergencyContact  String?
+  hospitalId        String?
+  primaryPhysician  String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime? // Soft deletion
+
+  // Relationships
+  ownerId           String
+  owner             User              @relation(fields: [ownerId], references: [id])
+
+  collaborations    Collaboration[]
+  entries           Entry[]
+  medications       Medication[]
+  medicalData       MedicalMeasurement[]
+  reminders         Reminder[]
+  messages          Message[]
+  notifications     Notification[]
+  contacts          Contact[]
+  invitations       Invitation[]
+}
+
+// Collaboration and permissions
 model Collaboration {
   id        String   @id @default(cuid())
   userId    String
   childId   String
-  role      String   // "parent", "caregiver", "nurse", etc.
+  role      String   // "owner", "parent", "caregiver", "nurse", "doctor", "family"
+
+  // Granular permissions
+  canViewMedical     Boolean @default(false)
+  canEditMedical     Boolean @default(false)
+  canViewNotes       Boolean @default(true)
+  canEditNotes       Boolean @default(false)
+  canViewCalendar    Boolean @default(true)
+  canEditCalendar    Boolean @default(false)
+  canViewTodos       Boolean @default(true)
+  canEditTodos       Boolean @default(false)
+  canViewMessages    Boolean @default(true)
+  canSendMessages    Boolean @default(true)
+  canInviteOthers    Boolean @default(false)
 
   createdAt DateTime @default(now())
+  deletedAt DateTime? // Soft deletion
 
   user      User     @relation(fields: [userId], references: [id])
+  child     Child    @relation(fields: [childId], references: [id])
 
   @@unique([userId, childId])
-  @@map("collaborations")
 }
 
+// Unified Entry system for different types
+model Entry {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+
+  // Entry-specific data (JSON for flexibility)
+  data        Json?
+
+  // Common fields
+  priority    String   @default("medium") // "low", "medium", "high", "urgent"
+  tags        String[] // For filtering and organization
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  // Assignment - now linked to User by ID
+  assignedToId  String?
+  assignedById  String?
+
+  // Visibility
+  privateAt   DateTime? // null = public, value = private
+  pinnedAt    DateTime? // null = not pinned, value = pinned
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft deletion
+
+  // Relationships
+  userId      String
+  childId     String
+  user        User     @relation(fields: [userId], references: [id])
+  child       Child    @relation(fields: [childId], references: [id])
+  assignedTo  User?    @relation("AssignedEntries", fields: [assignedToId], references: [id])
+  assignedBy  User?    @relation("AssignedByEntries", fields: [assignedById], references: [id])
+}
+
+// Medication tracking
 model Medication {
   id        String   @id @default(cuid())
   name      String
   dosage    String
   timing    String
-  isPRN     Boolean  @default(false)
+  frequency String?  // "daily", "weekly", "as_needed"
   notes     String?
+
+  // Medication administration tracking
+  activeAt    DateTime? @default(now())
+  inactiveAt  DateTime? // null = active, value = inactive
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft deletion
 
   childId   String
   child     Child    @relation(fields: [childId], references: [id])
 
+  // Track medication logs
+  logs      MedicationLog[]
+}
+
+// Medication administration logs
+model MedicationLog {
+  id           String   @id @default(cuid())
+  administeredAt DateTime @default(now())
+  administeredBy String
+  dosageGiven   String
+  notes         String?
+
+  createdAt    DateTime @default(now())
+  deletedAt    DateTime? // Soft deletion
+
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id])
+}
+
+// Medical measurements for reports
+model MedicalMeasurement {
+  id        String   @id @default(cuid())
+  type      String   // "weight", "height", "head_circumference", "blood_pressure", "temperature", "blood_levels"
+  value     Float
+  // We only store using SI units: kg, m, mmHg, etc.
+  unit      String
+  notes     String?
+
+  // For blood pressure: systolic/diastolic
+  additionalValue Float?
+
+  // For blood work
+  testName    String?
+  normalRange String?
+
+  measuredAt DateTime @default(now())
+  measuredBy String?
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft deletion
 
-  @@map("medications")
+  childId   String
+  child     Child    @relation(fields: [childId], references: [id])
 }
 
-model Appointment {
+// Smart reminders and timers
+model Reminder {
   id          String   @id @default(cuid())
   title       String
   description String?
-  datetime    DateTime
-  location    String?
-  specialist  String?
 
-  childId     String
-  child       Child    @relation(fields: [childId], references: [id])
+  // Reminder type
+  type        String   // "medication", "appointment", "task", "measurement", "custom"
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Recurrence settings
+  frequency   String?  // "hourly", "daily", "weekly", "monthly", "custom"
 
-  @@map("appointments")
-}
+  // Smart timer - resets based on actual completion
+  resetOnCompletion Boolean @default(false)
+  lastCompletedAt   DateTime?
+  nextDueAt         DateTime?
 
-model Todo {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  completed   Boolean  @default(false)
-  priority    String   @default("medium") // low, medium, high, urgent
-  assignedTo  String?
-  dueDate     DateTime?
+  // Assignment
+  assignedTo String?
 
-  childId     String
-  child       Child    @relation(fields: [childId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime? // Soft deletion
   completedAt DateTime?
 
-  @@map("todos")
+  childId    String
+  child      Child    @relation(fields: [childId], references: [id])
 }
 
-model Note {
-  id          String   @id @default(cuid())
-  title       String?
-  content     String
-  type        String   @default("general") // general, medical, follow-up, etc.
-  tags        String[] // Array of tags for filtering
-  isPinned    Boolean  @default(false)
+// Real-time message board
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  type      String   @default("general") // "general", "medical", "urgent", "system"
 
-  childId     String
-  child       Child    @relation(fields: [childId], references: [id])
+  // Message properties
+  pinnedAt  DateTime?
+  urgentAt  DateTime?
+
+  // Tagging users
+  mentionedUsers String[] // User IDs
+  tags           String[]
+
+  // Attachments
+  attachments    String[] // URLs or file paths
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft deletion
+
+  // Relationships
+  userId    String
+  childId   String
+  user      User     @relation(fields: [userId], references: [id])
+  child     Child    @relation(fields: [childId], references: [id])
+}
+
+// Contact directory
+model Contact {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // "hospital", "doctor", "specialist", "emergency", "pharmacy", "family"
+
+  // Contact information
+  phone       String?
+  email       String?
+  address     String?
+
+  // Professional info
+  specialty   String?
+  department  String?
+  hospital    String?
+
+  // Contact availability
+  availability String?
+  notes        String?
+
+  // Quick access
+  favoritedAt  DateTime?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@map("notes")
-}
-
-model Question {
-  id          String   @id @default(cuid())
-  question    String
-  answer      String?
-  specialist  String?  // Which specialist this is for
-  status      String   @default("pending") // pending, answered, archived
-  tags        String[] // Array of tags for filtering
+  deletedAt   DateTime? // Soft deletion
 
   childId     String
   child       Child    @relation(fields: [childId], references: [id])
+}
+
+// Invitation system for collaboration
+model Invitation {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  role      String
+
+  // Invitation status
+  status      String   @default("pending") // "pending", "accepted", "declined", "expired"
+
+  // Expiration
+  expiresAt   DateTime
 
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  answeredAt  DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+  deletedAt   DateTime? // Soft deletion
 
-  @@map("questions")
+  // Relationships
+  senderId    String
+  receiverId  String?
+  childId     String
+
+  sender      User     @relation("InvitationSender", fields: [senderId], references: [id])
+  receiver    User?    @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  child       Child    @relation(fields: [childId], references: [id])
+}
+
+// Notification system
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   // Model type: "entry", "reminder", "message", "medication", "contact", "invitation", "collaboration", "system"
+
+  // Optional attachment to a specific database item
+  relatedItemId String? // ID of the related item (Entry, Reminder, Message, etc.)
+
+  // Notification data
+  data      Json?
+
+  // Status
+  readAt      DateTime?
+  deliveredAt DateTime?
+
+  // Scheduling
+  scheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  deletedAt DateTime? // Soft deletion
+
+  // Relationships
+  userId    String
+  childId   String?
+  user      User     @relation(fields: [userId], references: [id])
+  child     Child?   @relation(fields: [childId], references: [id])
 }
