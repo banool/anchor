@@ -1,0 +1,332 @@
+# User queries
+query GetUser($id: String!) {
+  user(id: $id) {
+    id
+    email
+    name
+    avatar
+    phone
+    createdAt
+    updatedAt
+  }
+}
+
+query GetUserByEmail($email: String!) {
+  users(where: { email: { eq: $email } }) {
+    id
+    email
+    name
+    avatar
+    phone
+    createdAt
+    updatedAt
+  }
+}
+
+# Child queries
+query GetChildrenByOwner($ownerId: String!) {
+  children(where: {
+    ownerId: { eq: $ownerId },
+    deletedAt: { eq: null }
+  }) {
+    id
+    name
+    dateOfBirth
+    diagnosis
+    allergies
+    bloodType
+    currentWeight
+    currentHeight
+    headCircumference
+    ngTubePlacement
+    keyMedicalNotes
+    emergencyContact
+    hospitalId
+    primaryPhysician
+    createdAt
+    updatedAt
+    owner {
+      id
+      name
+      email
+    }
+  }
+}
+
+query GetChildById($id: String!) {
+  child(id: $id) {
+    id
+    name
+    dateOfBirth
+    diagnosis
+    allergies
+    bloodType
+    currentWeight
+    currentHeight
+    headCircumference
+    ngTubePlacement
+    keyMedicalNotes
+    emergencyContact
+    hospitalId
+    primaryPhysician
+    createdAt
+    updatedAt
+    owner {
+      id
+      name
+      email
+    }
+  }
+}
+
+# Entry queries
+query GetEntriesByChild($childId: String!, $limit: Int = 50) {
+  entries(
+    where: {
+      childId: { eq: $childId },
+      deletedAt: { eq: null }
+    },
+    orderBy: { createdAt: DESC },
+    limit: $limit
+  ) {
+    id
+    title
+    content
+    tags
+    priority
+    assignedToId
+    assignedById
+    completedAt
+    completedById
+    isPrivate
+    isPinned
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    child {
+      id
+      name
+    }
+    assignedTo {
+      id
+      name
+      email
+    }
+    assignedBy {
+      id
+      name
+      email
+    }
+    completedBy {
+      id
+      name
+      email
+    }
+  }
+}
+
+query GetEntriesByTags($childId: String!, $tags: [String!]!) {
+  entries(
+    where: {
+      childId: { eq: $childId },
+      tags: { arrayContains: $tags },
+      deletedAt: { eq: null }
+    },
+    orderBy: { createdAt: DESC }
+  ) {
+    id
+    title
+    content
+    tags
+    priority
+    assignedToId
+    assignedById
+    completedAt
+    completedById
+    isPrivate
+    isPinned
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    assignedTo {
+      id
+      name
+      email
+    }
+    assignedBy {
+      id
+      name
+      email
+    }
+  }
+}
+
+# Medication queries
+query GetMedicationsByChild($childId: String!) {
+  medications(
+    where: {
+      childId: { eq: $childId },
+      deletedAt: { eq: null }
+    },
+    orderBy: { createdAt: DESC }
+  ) {
+    id
+    name
+    dosage
+    frequency
+    route
+    prescribedBy
+    startDate
+    endDate
+    instructions
+    sideEffects
+    createdAt
+    updatedAt
+    child {
+      id
+      name
+    }
+  }
+}
+
+# Notification queries
+query GetNotificationsByUser($userId: String!, $limit: Int = 20) {
+  notifications(
+    where: {
+      userId: { eq: $userId },
+      deletedAt: { eq: null }
+    },
+    orderBy: { createdAt: DESC },
+    limit: $limit
+  ) {
+    id
+    title
+    message
+    type
+    priority
+    isRead
+    relatedItemId
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    child {
+      id
+      name
+    }
+  }
+}
+
+query GetUnreadNotifications($userId: String!) {
+  notifications(
+    where: {
+      userId: { eq: $userId },
+      isRead: { eq: false },
+      deletedAt: { eq: null }
+    },
+    orderBy: { createdAt: DESC }
+  ) {
+    id
+    title
+    message
+    type
+    priority
+    isRead
+    relatedItemId
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    child {
+      id
+      name
+    }
+  }
+}
+
+# Collaboration queries
+query GetCollaborationsByChild($childId: String!) {
+  collaborations(
+    where: {
+      childId: { eq: $childId },
+      deletedAt: { eq: null }
+    }
+  ) {
+    id
+    userId
+    childId
+    role
+    canViewMedical
+    canEditMedical
+    canViewNotes
+    canEditNotes
+    canViewCalendar
+    canEditCalendar
+    canViewTodos
+    canEditTodos
+    canViewMessages
+    canSendMessages
+    canInviteOthers
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    child {
+      id
+      name
+    }
+  }
+}
+
+query GetCollaborationsByUser($userId: String!) {
+  collaborations(
+    where: {
+      userId: { eq: $userId },
+      deletedAt: { eq: null }
+    }
+  ) {
+    id
+    userId
+    childId
+    role
+    canViewMedical
+    canEditMedical
+    canViewNotes
+    canEditNotes
+    canViewCalendar
+    canEditCalendar
+    canViewTodos
+    canEditTodos
+    canViewMessages
+    canSendMessages
+    canInviteOthers
+    createdAt
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    child {
+      id
+      name
+    }
+  }
+}

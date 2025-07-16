@@ -1,0 +1,5 @@
+connectorId: 'anchor-connector'
+generate:
+  javascriptSdk:
+    outputDir: '../lib/generated'
+    package: '@anchor/dataconnect'

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { logCrashlytics, setCrashlyticsAttribute } from './firebase'
 
 const prisma = new PrismaClient()
 
@@ -7,10 +8,47 @@ const withoutDeleted = { deletedAt: null }
 
 // Helper function to soft delete by setting deletedAt
 const softDelete = async (model: any, id: string) => {
-  return await model.update({
-    where: { id },
-    data: { deletedAt: new Date() }
-  })
+  try {
+    setCrashlyticsAttribute('operation', 'soft_delete')
+    setCrashlyticsAttribute('model', model.name || 'unknown')
+
+    const result = await model.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    })
+
+    logCrashlytics(`Soft deleted ${model.name || 'record'} with ID: ${id}`)
+    return result
+  } catch (error) {
+    logCrashlytics(`Error soft deleting ${model.name || 'record'} with ID: ${id}`, error as Error)
+    throw error
+  }
+}
+
+// Enhanced error handling wrapper
+const withErrorHandling = async <T>(
+  operation: string,
+  fn: () => Promise<T>,
+  context?: Record<string, string>
+): Promise<T> => {
+  try {
+    setCrashlyticsAttribute('operation', operation)
+    if (context) {
+      Object.entries(context).forEach(([key, value]) => {
+        setCrashlyticsAttribute(key, value)
+      })
+    }
+
+    const startTime = Date.now()
+    const result = await fn()
+    const duration = Date.now() - startTime
+
+    logCrashlytics(`${operation} completed successfully in ${duration}ms`)
+    return result
+  } catch (error) {
+    logCrashlytics(`Error in ${operation}`, error as Error)
+    throw error
+  }
 }
 
 // Entry operations
@@ -20,36 +58,46 @@ export const getEntries = async (childId: string, filters?: {
   assignedToId?: string
   isCompleted?: boolean
 }) => {
-  const where: any = {
-    childId,
-    ...withoutDeleted
-  }
+  return withErrorHandling(
+    'getEntries',
+    async () => {
+      const where: any = {
+        childId,
+        ...withoutDeleted
+      }
 
-  if (filters?.tags?.length) {
-    where.tags = { hasEvery: filters.tags }
-  }
+      if (filters?.tags?.length) {
+        where.tags = { hasEvery: filters.tags }
+      }
 
-  if (filters?.priority) {
-    where.priority = filters.priority
-  }
+      if (filters?.priority) {
+        where.priority = filters.priority
+      }
 
-  if (filters?.assignedToId) {
-    where.assignedToId = filters.assignedToId
-  }
+      if (filters?.assignedToId) {
+        where.assignedToId = filters.assignedToId
+      }
 
-  if (filters?.isCompleted !== undefined) {
-    where.completedAt = filters.isCompleted ? { not: null } : null
-  }
+      if (filters?.isCompleted !== undefined) {
+        where.completedAt = filters.isCompleted ? { not: null } : null
+      }
 
-  return await prisma.entry.findMany({
-    where,
-    include: {
-      user: true,
-      assignedTo: true,
-      assignedBy: true
+      return await prisma.entry.findMany({
+        where,
+        include: {
+          user: true,
+          assignedTo: true,
+          assignedBy: true
+        },
+        orderBy: { createdAt: 'desc' }
+      })
     },
-    orderBy: { createdAt: 'desc' }
-  })
+    {
+      childId,
+      hasFilters: filters ? 'true' : 'false',
+      filterCount: filters ? Object.keys(filters).length.toString() : '0'
+    }
+  )
 }
 
 export const createEntry = async (data: {
@@ -63,17 +111,29 @@ export const createEntry = async (data: {
   userId: string
   childId: string
 }) => {
-  return await prisma.entry.create({
-    data: {
-      ...data,
-      assignedById: data.userId // Set the creator as assignedBy
+  return withErrorHandling(
+    'createEntry',
+    async () => {
+      return await prisma.entry.create({
+        data: {
+          ...data,
+          assignedById: data.userId // Set the creator as assignedBy
+        },
+        include: {
+          user: true,
+          assignedTo: true,
+          assignedBy: true
+        }
+      })
     },
-    include: {
-      user: true,
-      assignedTo: true,
-      assignedBy: true
+    {
+      childId: data.childId,
+      userId: data.userId,
+      hasDescription: data.description ? 'true' : 'false',
+      priority: data.priority || 'none',
+      tagCount: data.tags?.length.toString() || '0'
     }
-  })
+  )
 }
 
 export const updateEntry = async (id: string, data: {
@@ -88,15 +148,25 @@ export const updateEntry = async (id: string, data: {
   privateAt?: Date
   pinnedAt?: Date
 }) => {
-  return await prisma.entry.update({
-    where: { id, ...withoutDeleted },
-    data,
-    include: {
-      user: true,
-      assignedTo: true,
-      assignedBy: true
+  return withErrorHandling(
+    'updateEntry',
+    async () => {
+      return await prisma.entry.update({
+        where: { id, ...withoutDeleted },
+        data,
+        include: {
+          user: true,
+          assignedTo: true,
+          assignedBy: true
+        }
+      })
+    },
+    {
+      entryId: id,
+      updateFields: Object.keys(data).join(','),
+      fieldCount: Object.keys(data).length.toString()
     }
-  })
+  )
 }
 
 export const deleteEntry = async (id: string) => {
@@ -105,25 +175,34 @@ export const deleteEntry = async (id: string) => {
 
 // Medication operations
 export const getMedications = async (childId: string, activeOnly = true) => {
-  const where: any = {
-    childId,
-    ...withoutDeleted
-  }
-
-  if (activeOnly) {
-    where.activeAt = { not: null }
-    where.inactiveAt = null
-  }
-
-  return await prisma.medication.findMany({
-    where,
-    include: {
-      logs: {
-        where: withoutDeleted,
-        orderBy: { administeredAt: 'desc' }
+  return withErrorHandling(
+    'getMedications',
+    async () => {
+      const where: any = {
+        childId,
+        ...withoutDeleted
       }
+
+      if (activeOnly) {
+        where.activeAt = { not: null }
+        where.inactiveAt = null
+      }
+
+      return await prisma.medication.findMany({
+        where,
+        include: {
+          logs: {
+            where: withoutDeleted,
+            orderBy: { administeredAt: 'desc' }
+          }
+        }
+      })
+    },
+    {
+      childId,
+      activeOnly: activeOnly.toString()
     }
-  })
+  )
 }
 
 export const createMedication = async (data: {
@@ -134,7 +213,18 @@ export const createMedication = async (data: {
   notes?: string
   childId: string
 }) => {
-  return await prisma.medication.create({ data })
+  return withErrorHandling(
+    'createMedication',
+    async () => {
+      return await prisma.medication.create({ data })
+    },
+    {
+      childId: data.childId,
+      medicationName: data.name,
+      dosage: data.dosage,
+      timing: data.timing
+    }
+  )
 }
 
 export const logMedication = async (data: {
@@ -144,7 +234,17 @@ export const logMedication = async (data: {
   notes?: string
   administeredAt?: Date
 }) => {
-  return await prisma.medicationLog.create({ data })
+  return withErrorHandling(
+    'logMedication',
+    async () => {
+      return await prisma.medicationLog.create({ data })
+    },
+    {
+      medicationId: data.medicationId,
+      administeredBy: data.administeredBy,
+      dosageGiven: data.dosageGiven
+    }
+  )
 }
 
 export const deleteMedication = async (id: string) => {
@@ -153,19 +253,29 @@ export const deleteMedication = async (id: string) => {
 
 // Medical measurements
 export const getMedicalMeasurements = async (childId: string, type?: string) => {
-  const where: any = {
-    childId,
-    ...withoutDeleted
-  }
+  return withErrorHandling(
+    'getMedicalMeasurements',
+    async () => {
+      const where: any = {
+        childId,
+        ...withoutDeleted
+      }
 
-  if (type) {
-    where.type = type
-  }
+      if (type) {
+        where.type = type
+      }
 
-  return await prisma.medicalMeasurement.findMany({
-    where,
-    orderBy: { measuredAt: 'desc' }
-  })
+      return await prisma.medicalMeasurement.findMany({
+        where,
+        orderBy: { measuredAt: 'desc' }
+      })
+    },
+    {
+      childId,
+      type: type || 'all',
+      hasTypeFilter: type ? 'true' : 'false'
+    }
+  )
 }
 
 export const createMedicalMeasurement = async (data: {
@@ -179,7 +289,19 @@ export const createMedicalMeasurement = async (data: {
   measuredBy?: string
   childId: string
 }) => {
-  return await prisma.medicalMeasurement.create({ data })
+  return withErrorHandling(
+    'createMedicalMeasurement',
+    async () => {
+      return await prisma.medicalMeasurement.create({ data })
+    },
+    {
+      childId: data.childId,
+      type: data.type,
+      value: data.value.toString(),
+      unit: data.unit,
+      measuredBy: data.measuredBy || 'unknown'
+    }
+  )
 }
 
 export const deleteMedicalMeasurement = async (id: string) => {
@@ -188,19 +310,28 @@ export const deleteMedicalMeasurement = async (id: string) => {
 
 // Reminders
 export const getReminders = async (childId: string, activeOnly = true) => {
-  const where: any = {
-    childId,
-    ...withoutDeleted
-  }
+  return withErrorHandling(
+    'getReminders',
+    async () => {
+      const where: any = {
+        childId,
+        ...withoutDeleted
+      }
 
-  if (activeOnly) {
-    where.completedAt = null
-  }
+      if (activeOnly) {
+        where.completedAt = null
+      }
 
-  return await prisma.reminder.findMany({
-    where,
-    orderBy: { nextDueAt: 'asc' }
-  })
+      return await prisma.reminder.findMany({
+        where,
+        orderBy: { nextDueAt: 'asc' }
+      })
+    },
+    {
+      childId,
+      activeOnly: activeOnly.toString()
+    }
+  )
 }
 
 export const createReminder = async (data: {
@@ -213,7 +344,19 @@ export const createReminder = async (data: {
   assignedTo?: string
   childId: string
 }) => {
-  return await prisma.reminder.create({ data })
+  return withErrorHandling(
+    'createReminder',
+    async () => {
+      return await prisma.reminder.create({ data })
+    },
+    {
+      childId: data.childId,
+      title: data.title,
+      type: data.type,
+      frequency: data.frequency || 'none',
+      assignedTo: data.assignedTo || 'unassigned'
+    }
+  )
 }
 
 export const deleteReminder = async (id: string) => {
@@ -222,15 +365,24 @@ export const deleteReminder = async (id: string) => {
 
 // Messages
 export const getMessages = async (childId: string, limit = 50) => {
-  return await prisma.message.findMany({
-    where: {
-      childId,
-      ...withoutDeleted
+  return withErrorHandling(
+    'getMessages',
+    async () => {
+      return await prisma.message.findMany({
+        where: {
+          childId,
+          ...withoutDeleted
+        },
+        include: { user: true },
+        orderBy: { createdAt: 'desc' },
+        take: limit
+      })
     },
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-    take: limit
-  })
+    {
+      childId,
+      limit: limit.toString()
+    }
+  )
 }
 
 export const createMessage = async (data: {
@@ -242,10 +394,23 @@ export const createMessage = async (data: {
   userId: string
   childId: string
 }) => {
-  return await prisma.message.create({
-    data,
-    include: { user: true }
-  })
+  return withErrorHandling(
+    'createMessage',
+    async () => {
+      return await prisma.message.create({
+        data,
+        include: { user: true }
+      })
+    },
+    {
+      childId: data.childId,
+      userId: data.userId,
+      type: data.type || 'text',
+      contentLength: data.content.length.toString(),
+      hasMentions: data.mentionedUsers && data.mentionedUsers.length > 0 ? 'true' : 'false',
+      hasAttachments: data.attachments && data.attachments.length > 0 ? 'true' : 'false'
+    }
+  )
 }
 
 export const deleteMessage = async (id: string) => {
@@ -254,19 +419,29 @@ export const deleteMessage = async (id: string) => {
 
 // Contacts
 export const getContacts = async (childId: string, type?: string) => {
-  const where: any = {
-    childId,
-    ...withoutDeleted
-  }
+  return withErrorHandling(
+    'getContacts',
+    async () => {
+      const where: any = {
+        childId,
+        ...withoutDeleted
+      }
 
-  if (type) {
-    where.type = type
-  }
+      if (type) {
+        where.type = type
+      }
 
-  return await prisma.contact.findMany({
-    where,
-    orderBy: { name: 'asc' }
-  })
+      return await prisma.contact.findMany({
+        where,
+        orderBy: { name: 'asc' }
+      })
+    },
+    {
+      childId,
+      type: type || 'all',
+      hasTypeFilter: type ? 'true' : 'false'
+    }
+  )
 }
 
 export const createContact = async (data: {
@@ -282,7 +457,19 @@ export const createContact = async (data: {
   notes?: string
   childId: string
 }) => {
-  return await prisma.contact.create({ data })
+  return withErrorHandling(
+    'createContact',
+    async () => {
+      return await prisma.contact.create({ data })
+    },
+    {
+      childId: data.childId,
+      name: data.name,
+      type: data.type,
+      specialty: data.specialty || 'none',
+      hospital: data.hospital || 'unknown'
+    }
+  )
 }
 
 export const deleteContact = async (id: string) => {
@@ -297,43 +484,63 @@ export const createInvitation = async (data: {
   senderId: string
   childId: string
 }) => {
-  const token = Math.random().toString(36).substring(2, 15)
+  return withErrorHandling(
+    'createInvitation',
+    async () => {
+      const token = Math.random().toString(36).substring(2, 15)
 
-  return await prisma.invitation.create({
-    data: {
-      ...data,
-      token
+      return await prisma.invitation.create({
+        data: {
+          ...data,
+          token
+        }
+      })
+    },
+    {
+      childId: data.childId,
+      senderId: data.senderId,
+      email: data.email,
+      role: data.role
     }
-  })
+  )
 }
 
 export const acceptInvitation = async (token: string, userId: string) => {
-  const invitation = await prisma.invitation.findUnique({
-    where: { token, ...withoutDeleted }
-  })
+  return withErrorHandling(
+    'acceptInvitation',
+    async () => {
+      const invitation = await prisma.invitation.findUnique({
+        where: { token, ...withoutDeleted }
+      })
 
-  if (!invitation || invitation.expiresAt < new Date()) {
-    throw new Error('Invalid or expired invitation')
-  }
+      if (!invitation || invitation.expiresAt < new Date()) {
+        throw new Error('Invalid or expired invitation')
+      }
 
-  // Create collaboration
-  await prisma.collaboration.create({
-    data: {
-      userId,
-      childId: invitation.childId,
-      role: invitation.role
+      // Create collaboration
+      await prisma.collaboration.create({
+        data: {
+          userId,
+          childId: invitation.childId,
+          role: invitation.role
+        }
+      })
+
+      // Update invitation
+      return await prisma.invitation.update({
+        where: { token },
+        data: {
+          status: 'accepted',
+          acceptedAt: new Date(),
+          receiverId: userId
+        }
+      })
+    },
+    {
+      token,
+      userId
     }
-  })
-
-  // Update invitation
-  return await prisma.invitation.update({
-    where: { token },
-    data: {
-      status: 'accepted',
-      acceptedAt: new Date(),
-      receiverId: userId
-    }
-  })
+  )
 }
 
 export const deleteInvitation = async (id: string) => {
@@ -342,19 +549,28 @@ export const deleteInvitation = async (id: string) => {
 
 // Notifications
 export const getNotifications = async (userId: string, unreadOnly = false) => {
-  const where: any = {
-    userId,
-    ...withoutDeleted
-  }
+  return withErrorHandling(
+    'getNotifications',
+    async () => {
+      const where: any = {
+        userId,
+        ...withoutDeleted
+      }
 
-  if (unreadOnly) {
-    where.readAt = null
-  }
+      if (unreadOnly) {
+        where.readAt = null
+      }
 
-  return await prisma.notification.findMany({
-    where,
-    orderBy: { createdAt: 'desc' }
-  })
+      return await prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
+      })
+    },
+    {
+      userId,
+      unreadOnly: unreadOnly.toString()
+    }
+  )
 }
 
 export const createNotification = async (data: {
@@ -367,14 +583,34 @@ export const createNotification = async (data: {
   userId: string
   childId?: string
 }) => {
-  return await prisma.notification.create({ data })
+  return withErrorHandling(
+    'createNotification',
+    async () => {
+      return await prisma.notification.create({ data })
+    },
+    {
+      userId: data.userId,
+      childId: data.childId || 'none',
+      type: data.type,
+      relatedItemId: data.relatedItemId || 'none',
+      hasScheduledAt: data.scheduledAt ? 'true' : 'false'
+    }
+  )
 }
 
 export const markNotificationRead = async (id: string) => {
-  return await prisma.notification.update({
-    where: { id, ...withoutDeleted },
-    data: { readAt: new Date() }
-  })
+  return withErrorHandling(
+    'markNotificationRead',
+    async () => {
+      return await prisma.notification.update({
+        where: { id, ...withoutDeleted },
+        data: { readAt: new Date() }
+      })
+    },
+    {
+      notificationId: id
+    }
+  )
 }
 
 export const deleteNotification = async (id: string) => {
@@ -392,16 +628,27 @@ export const createNotificationForItem = async (params: {
   data?: any
   scheduledAt?: Date
 }) => {
-  return await createNotification({
-    title: params.title,
-    message: params.message,
-    type: params.modelType,
-    relatedItemId: params.relatedItemId,
-    data: params.data,
-    scheduledAt: params.scheduledAt,
-    userId: params.userId,
-    childId: params.childId
-  })
+  return withErrorHandling(
+    'createNotificationForItem',
+    async () => {
+      return await createNotification({
+        title: params.title,
+        message: params.message,
+        type: params.modelType,
+        relatedItemId: params.relatedItemId,
+        userId: params.userId,
+        childId: params.childId,
+        data: params.data,
+        scheduledAt: params.scheduledAt
+      })
+    },
+    {
+      modelType: params.modelType,
+      relatedItemId: params.relatedItemId,
+      userId: params.userId,
+      childId: params.childId || 'none'
+    }
+  )
 }
 
 // Helper function to get notifications for a specific item

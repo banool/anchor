@@ -1,0 +1,11 @@
+specVersion: 'v1alpha'
+serviceId: 'anchor-service'
+location: 'us-central1'
+schema:
+  source: './schema'
+  datasource:
+    postgresql:
+      database: 'anchor_db'
+      cloudSql:
+        instanceId: 'anchor-db-instance'
+connectorDirs: ['./anchor-connector']

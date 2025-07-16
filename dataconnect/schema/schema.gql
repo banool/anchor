@@ -1,0 +1,200 @@
+type User @table(name: "User") {
+  id: String! @col(name: "id")
+  email: String! @col(name: "email")
+  name: String @col(name: "name")
+  avatar: String @col(name: "avatar")
+  phone: String @col(name: "phone")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  ownedChildren: [Child!]! @relation
+  collaborations: [Collaboration!]! @relation
+  entries: [Entry!]! @relation
+  assignedEntries: [Entry!]! @relation(name: "AssignedEntries")
+  assignedByEntries: [Entry!]! @relation(name: "AssignedByEntries")
+  messages: [Message!]! @relation
+  notifications: [Notification!]! @relation
+  invitationsSent: [Invitation!]! @relation(name: "InvitationSender")
+  invitationsReceived: [Invitation!]! @relation(name: "InvitationReceiver")
+}
+
+type Child @table(name: "Child") {
+  id: String! @col(name: "id")
+  name: String! @col(name: "name")
+  dateOfBirth: Date @col(name: "dateOfBirth")
+  diagnosis: String @col(name: "diagnosis")
+  allergies: String @col(name: "allergies")
+  bloodType: String @col(name: "bloodType")
+
+  # Current measurements
+  currentWeight: Float @col(name: "currentWeight")
+  currentHeight: Float @col(name: "currentHeight")
+  headCircumference: Float @col(name: "headCircumference")
+
+  # Medical device info
+  ngTubePlacement: String @col(name: "ngTubePlacement")
+  keyMedicalNotes: String @col(name: "keyMedicalNotes")
+
+  # Emergency info
+  emergencyContact: String @col(name: "emergencyContact")
+  hospitalId: String @col(name: "hospitalId")
+  primaryPhysician: String @col(name: "primaryPhysician")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  ownerId: String! @col(name: "ownerId")
+  owner: User! @relation(fields: ["ownerId"], references: ["id"])
+
+  collaborations: [Collaboration!]! @relation
+  entries: [Entry!]! @relation
+  medications: [Medication!]! @relation
+  medicalData: [MedicalMeasurement!]! @relation
+  reminders: [Reminder!]! @relation
+  messages: [Message!]! @relation
+  notifications: [Notification!]! @relation
+  contacts: [Contact!]! @relation
+  invitations: [Invitation!]! @relation
+}
+
+type Collaboration @table(name: "Collaboration") {
+  id: String! @col(name: "id")
+  userId: String! @col(name: "userId")
+  childId: String! @col(name: "childId")
+  role: String! @col(name: "role")
+
+  # Granular permissions
+  canViewMedical: Boolean! @col(name: "canViewMedical")
+  canEditMedical: Boolean! @col(name: "canEditMedical")
+  canViewNotes: Boolean! @col(name: "canViewNotes")
+  canEditNotes: Boolean! @col(name: "canEditNotes")
+  canViewCalendar: Boolean! @col(name: "canViewCalendar")
+  canEditCalendar: Boolean! @col(name: "canEditCalendar")
+  canViewTodos: Boolean! @col(name: "canViewTodos")
+  canEditTodos: Boolean! @col(name: "canEditTodos")
+  canViewMessages: Boolean! @col(name: "canViewMessages")
+  canSendMessages: Boolean! @col(name: "canSendMessages")
+  canInviteOthers: Boolean! @col(name: "canInviteOthers")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  user: User! @relation(fields: ["userId"], references: ["id"])
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+}
+
+type Entry @table(name: "Entry") {
+  id: String! @col(name: "id")
+  title: String! @col(name: "title")
+  content: String @col(name: "content")
+  tags: [String!]! @col(name: "tags")
+  priority: String @col(name: "priority")
+
+  # Assignment fields
+  assignedToId: String @col(name: "assignedToId")
+  assignedById: String @col(name: "assignedById")
+
+  # Completion tracking
+  completedAt: Timestamp @col(name: "completedAt")
+  completedById: String @col(name: "completedById")
+
+  # Visibility
+  isPrivate: Boolean! @col(name: "isPrivate")
+  isPinned: Boolean! @col(name: "isPinned")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  userId: String! @col(name: "userId")
+  childId: String! @col(name: "childId")
+  user: User! @relation(fields: ["userId"], references: ["id"])
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+  assignedTo: User @relation(fields: ["assignedToId"], references: ["id"])
+  assignedBy: User @relation(fields: ["assignedById"], references: ["id"])
+  completedBy: User @relation(fields: ["completedById"], references: ["id"])
+}
+
+type Medication @table(name: "Medication") {
+  id: String! @col(name: "id")
+  name: String! @col(name: "name")
+  dosage: String! @col(name: "dosage")
+  frequency: String! @col(name: "frequency")
+  route: String! @col(name: "route")
+  prescribedBy: String @col(name: "prescribedBy")
+  startDate: Date! @col(name: "startDate")
+  endDate: Date @col(name: "endDate")
+  instructions: String @col(name: "instructions")
+  sideEffects: String @col(name: "sideEffects")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  childId: String! @col(name: "childId")
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+  logs: [MedicationLog!]! @relation
+}
+
+type MedicationLog @table(name: "MedicationLog") {
+  id: String! @col(name: "id")
+  dosageGiven: String! @col(name: "dosageGiven")
+  timeGiven: Timestamp! @col(name: "timeGiven")
+  givenBy: String! @col(name: "givenBy")
+  notes: String @col(name: "notes")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  medicationId: String! @col(name: "medicationId")
+  medication: Medication! @relation(fields: ["medicationId"], references: ["id"])
+}
+
+type Reminder @table(name: "Reminder") {
+  id: String! @col(name: "id")
+  title: String! @col(name: "title")
+  description: String @col(name: "description")
+  dueDate: Timestamp! @col(name: "dueDate")
+  reminderType: String! @col(name: "reminderType")
+  isRecurring: Boolean! @col(name: "isRecurring")
+  recurringFrequency: String @col(name: "recurringFrequency")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  childId: String! @col(name: "childId")
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+}
+
+type Notification @table(name: "Notification") {
+  id: String! @col(name: "id")
+  title: String! @col(name: "title")
+  message: String! @col(name: "message")
+  type: String! @col(name: "type")
+  priority: String @col(name: "priority")
+  isRead: Boolean! @col(name: "isRead")
+  relatedItemId: String @col(name: "relatedItemId")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  userId: String! @col(name: "userId")
+  childId: String! @col(name: "childId")
+  user: User! @relation(fields: ["userId"], references: ["id"])
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+}

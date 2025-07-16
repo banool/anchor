@@ -1,0 +1,495 @@
+# User mutations
+mutation CreateUser($email: String!, $name: String, $avatar: String, $phone: String) {
+  user_insert(data: {
+    email: $email,
+    name: $name,
+    avatar: $avatar,
+    phone: $phone
+  }) {
+    id
+    email
+    name
+    avatar
+    phone
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateUser($id: String!, $name: String, $avatar: String, $phone: String) {
+  user_update(id: $id, data: {
+    name: $name,
+    avatar: $avatar,
+    phone: $phone
+  }) {
+    id
+    email
+    name
+    avatar
+    phone
+    createdAt
+    updatedAt
+  }
+}
+
+mutation SoftDeleteUser($id: String!) {
+  user_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Child mutations
+mutation CreateChild(
+  $name: String!,
+  $ownerId: String!,
+  $dateOfBirth: Date,
+  $diagnosis: String,
+  $allergies: String,
+  $bloodType: String,
+  $currentWeight: Float,
+  $currentHeight: Float,
+  $headCircumference: Float,
+  $ngTubePlacement: String,
+  $keyMedicalNotes: String,
+  $emergencyContact: String,
+  $hospitalId: String,
+  $primaryPhysician: String
+) {
+  child_insert(data: {
+    name: $name,
+    ownerId: $ownerId,
+    dateOfBirth: $dateOfBirth,
+    diagnosis: $diagnosis,
+    allergies: $allergies,
+    bloodType: $bloodType,
+    currentWeight: $currentWeight,
+    currentHeight: $currentHeight,
+    headCircumference: $headCircumference,
+    ngTubePlacement: $ngTubePlacement,
+    keyMedicalNotes: $keyMedicalNotes,
+    emergencyContact: $emergencyContact,
+    hospitalId: $hospitalId,
+    primaryPhysician: $primaryPhysician
+  }) {
+    id
+    name
+    dateOfBirth
+    diagnosis
+    allergies
+    bloodType
+    currentWeight
+    currentHeight
+    headCircumference
+    ngTubePlacement
+    keyMedicalNotes
+    emergencyContact
+    hospitalId
+    primaryPhysician
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateChild(
+  $id: String!,
+  $name: String,
+  $dateOfBirth: Date,
+  $diagnosis: String,
+  $allergies: String,
+  $bloodType: String,
+  $currentWeight: Float,
+  $currentHeight: Float,
+  $headCircumference: Float,
+  $ngTubePlacement: String,
+  $keyMedicalNotes: String,
+  $emergencyContact: String,
+  $hospitalId: String,
+  $primaryPhysician: String
+) {
+  child_update(id: $id, data: {
+    name: $name,
+    dateOfBirth: $dateOfBirth,
+    diagnosis: $diagnosis,
+    allergies: $allergies,
+    bloodType: $bloodType,
+    currentWeight: $currentWeight,
+    currentHeight: $currentHeight,
+    headCircumference: $headCircumference,
+    ngTubePlacement: $ngTubePlacement,
+    keyMedicalNotes: $keyMedicalNotes,
+    emergencyContact: $emergencyContact,
+    hospitalId: $hospitalId,
+    primaryPhysician: $primaryPhysician
+  }) {
+    id
+    name
+    dateOfBirth
+    diagnosis
+    allergies
+    bloodType
+    currentWeight
+    currentHeight
+    headCircumference
+    ngTubePlacement
+    keyMedicalNotes
+    emergencyContact
+    hospitalId
+    primaryPhysician
+    createdAt
+    updatedAt
+  }
+}
+
+mutation SoftDeleteChild($id: String!) {
+  child_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Entry mutations
+mutation CreateEntry(
+  $title: String!,
+  $content: String,
+  $tags: [String!]!,
+  $priority: String,
+  $assignedToId: String,
+  $assignedById: String,
+  $isPrivate: Boolean!,
+  $isPinned: Boolean!,
+  $userId: String!,
+  $childId: String!
+) {
+  entry_insert(data: {
+    title: $title,
+    content: $content,
+    tags: $tags,
+    priority: $priority,
+    assignedToId: $assignedToId,
+    assignedById: $assignedById,
+    isPrivate: $isPrivate,
+    isPinned: $isPinned,
+    userId: $userId,
+    childId: $childId
+  }) {
+    id
+    title
+    content
+    tags
+    priority
+    assignedToId
+    assignedById
+    isPrivate
+    isPinned
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateEntry(
+  $id: String!,
+  $title: String,
+  $content: String,
+  $tags: [String!],
+  $priority: String,
+  $assignedToId: String,
+  $assignedById: String,
+  $isPrivate: Boolean,
+  $isPinned: Boolean
+) {
+  entry_update(id: $id, data: {
+    title: $title,
+    content: $content,
+    tags: $tags,
+    priority: $priority,
+    assignedToId: $assignedToId,
+    assignedById: $assignedById,
+    isPrivate: $isPrivate,
+    isPinned: $isPinned
+  }) {
+    id
+    title
+    content
+    tags
+    priority
+    assignedToId
+    assignedById
+    isPrivate
+    isPinned
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CompleteEntry($id: String!, $completedById: String!) {
+  entry_update(id: $id, data: {
+    completedAt: { serverTimestamp: true },
+    completedById: $completedById
+  }) {
+    id
+    completedAt
+    completedById
+  }
+}
+
+mutation SoftDeleteEntry($id: String!) {
+  entry_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Medication mutations
+mutation CreateMedication(
+  $name: String!,
+  $dosage: String!,
+  $frequency: String!,
+  $route: String!,
+  $prescribedBy: String,
+  $startDate: Date!,
+  $endDate: Date,
+  $instructions: String,
+  $sideEffects: String,
+  $childId: String!
+) {
+  medication_insert(data: {
+    name: $name,
+    dosage: $dosage,
+    frequency: $frequency,
+    route: $route,
+    prescribedBy: $prescribedBy,
+    startDate: $startDate,
+    endDate: $endDate,
+    instructions: $instructions,
+    sideEffects: $sideEffects,
+    childId: $childId
+  }) {
+    id
+    name
+    dosage
+    frequency
+    route
+    prescribedBy
+    startDate
+    endDate
+    instructions
+    sideEffects
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateMedication(
+  $id: String!,
+  $name: String,
+  $dosage: String,
+  $frequency: String,
+  $route: String,
+  $prescribedBy: String,
+  $startDate: Date,
+  $endDate: Date,
+  $instructions: String,
+  $sideEffects: String
+) {
+  medication_update(id: $id, data: {
+    name: $name,
+    dosage: $dosage,
+    frequency: $frequency,
+    route: $route,
+    prescribedBy: $prescribedBy,
+    startDate: $startDate,
+    endDate: $endDate,
+    instructions: $instructions,
+    sideEffects: $sideEffects
+  }) {
+    id
+    name
+    dosage
+    frequency
+    route
+    prescribedBy
+    startDate
+    endDate
+    instructions
+    sideEffects
+    createdAt
+    updatedAt
+  }
+}
+
+mutation SoftDeleteMedication($id: String!) {
+  medication_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Notification mutations
+mutation CreateNotification(
+  $title: String!,
+  $message: String!,
+  $type: String!,
+  $priority: String,
+  $relatedItemId: String,
+  $userId: String!,
+  $childId: String!
+) {
+  notification_insert(data: {
+    title: $title,
+    message: $message,
+    type: $type,
+    priority: $priority,
+    isRead: false,
+    relatedItemId: $relatedItemId,
+    userId: $userId,
+    childId: $childId
+  }) {
+    id
+    title
+    message
+    type
+    priority
+    isRead
+    relatedItemId
+    createdAt
+    updatedAt
+  }
+}
+
+mutation MarkNotificationAsRead($id: String!) {
+  notification_update(id: $id, data: {
+    isRead: true
+  }) {
+    id
+    isRead
+  }
+}
+
+mutation SoftDeleteNotification($id: String!) {
+  notification_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Collaboration mutations
+mutation CreateCollaboration(
+  $userId: String!,
+  $childId: String!,
+  $role: String!,
+  $canViewMedical: Boolean,
+  $canEditMedical: Boolean,
+  $canViewNotes: Boolean,
+  $canEditNotes: Boolean,
+  $canViewCalendar: Boolean,
+  $canEditCalendar: Boolean,
+  $canViewTodos: Boolean,
+  $canEditTodos: Boolean,
+  $canViewMessages: Boolean,
+  $canSendMessages: Boolean,
+  $canInviteOthers: Boolean
+) {
+  collaboration_insert(data: {
+    userId: $userId,
+    childId: $childId,
+    role: $role,
+    canViewMedical: $canViewMedical,
+    canEditMedical: $canEditMedical,
+    canViewNotes: $canViewNotes,
+    canEditNotes: $canEditNotes,
+    canViewCalendar: $canViewCalendar,
+    canEditCalendar: $canEditCalendar,
+    canViewTodos: $canViewTodos,
+    canEditTodos: $canEditTodos,
+    canViewMessages: $canViewMessages,
+    canSendMessages: $canSendMessages,
+    canInviteOthers: $canInviteOthers
+  }) {
+    id
+    userId
+    childId
+    role
+    canViewMedical
+    canEditMedical
+    canViewNotes
+    canEditNotes
+    canViewCalendar
+    canEditCalendar
+    canViewTodos
+    canEditTodos
+    canViewMessages
+    canSendMessages
+    canInviteOthers
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateCollaboration(
+  $id: String!,
+  $role: String,
+  $canViewMedical: Boolean,
+  $canEditMedical: Boolean,
+  $canViewNotes: Boolean,
+  $canEditNotes: Boolean,
+  $canViewCalendar: Boolean,
+  $canEditCalendar: Boolean,
+  $canViewTodos: Boolean,
+  $canEditTodos: Boolean,
+  $canViewMessages: Boolean,
+  $canSendMessages: Boolean,
+  $canInviteOthers: Boolean
+) {
+  collaboration_update(id: $id, data: {
+    role: $role,
+    canViewMedical: $canViewMedical,
+    canEditMedical: $canEditMedical,
+    canViewNotes: $canViewNotes,
+    canEditNotes: $canEditNotes,
+    canViewCalendar: $canViewCalendar,
+    canEditCalendar: $canEditCalendar,
+    canViewTodos: $canViewTodos,
+    canEditTodos: $canEditTodos,
+    canViewMessages: $canViewMessages,
+    canSendMessages: $canSendMessages,
+    canInviteOthers: $canInviteOthers
+  }) {
+    id
+    userId
+    childId
+    role
+    canViewMedical
+    canEditMedical
+    canViewNotes
+    canEditNotes
+    canViewCalendar
+    canEditCalendar
+    canViewTodos
+    canEditTodos
+    canViewMessages
+    canSendMessages
+    canInviteOthers
+    createdAt
+    updatedAt
+  }
+}
+
+mutation SoftDeleteCollaboration($id: String!) {
+  collaboration_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
