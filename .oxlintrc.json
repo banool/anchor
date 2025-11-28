@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxlint/configuration_schema.json",
+  "rules": {
+    "no-alert": "error"
+  },
+  "plugins": [
+    "react",
+    "import",
+    "vitest"
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/"
+  ]
+}
