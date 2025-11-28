@@ -1,5 +1,6 @@
 import { initializeApp as initializeJSApp } from '@firebase/app';
 import { connectDataConnectEmulator, DataConnect, getDataConnect } from '@firebase/data-connect';
+import { FirebaseStorage, getStorage } from '@firebase/storage';
 import { initializeApp } from '@react-native-firebase/app';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import crashlytics from '@react-native-firebase/crashlytics';
@@ -26,12 +27,22 @@ try {
   console.error('Firebase initialization error:', error);
 }
 
-// Initialize Firebase JS SDK (for Data Connect)
+// Initialize Firebase JS SDK (for Data Connect and Storage)
 let jsApp;
 try {
   jsApp = initializeJSApp(firebaseConfig, 'js-app');
 } catch (error) {
   console.error('Firebase JS SDK initialization error:', error);
+}
+
+// Initialize Storage
+export let storage: FirebaseStorage | undefined;
+try {
+  if (jsApp) {
+    storage = getStorage(jsApp);
+  }
+} catch (error) {
+  console.error('Firebase Storage initialization error:', error);
 }
 
 // Initialize Data Connect

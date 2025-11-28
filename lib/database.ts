@@ -1,29 +1,7 @@
-import { PrismaClient } from '@prisma/client'
 import { logCrashlytics, setCrashlyticsAttribute } from './firebase'
 
-const prisma = new PrismaClient()
-
-// Base where clause for soft deletion
-const withoutDeleted = { deletedAt: null }
-
-// Helper function to soft delete by setting deletedAt
-const softDelete = async (model: any, id: string) => {
-  try {
-    setCrashlyticsAttribute('operation', 'soft_delete')
-    setCrashlyticsAttribute('model', model.name || 'unknown')
-
-    const result = await model.update({
-      where: { id },
-      data: { deletedAt: new Date() }
-    })
-
-    logCrashlytics(`Soft deleted ${model.name || 'record'} with ID: ${id}`)
-    return result
-  } catch (error) {
-    logCrashlytics(`Error soft deleting ${model.name || 'record'} with ID: ${id}`, error as Error)
-    throw error
-  }
-}
+// Initialize Data Connect (placeholder until Firebase Data Connect is configured)
+const dataConnect = null
 
 // Enhanced error handling wrapper
 const withErrorHandling = async <T>(
@@ -51,728 +29,252 @@ const withErrorHandling = async <T>(
   }
 }
 
-// User operations
-export const createUser = async (data: {
-  email: string
-  name?: string | null
-  avatar?: string | null
-  phone?: string | null
-  firebaseUid: string
-}) => {
-  return withErrorHandling(
-    'createUser',
-    async () => {
-      return await prisma.user.create({
-        data: {
-          email: data.email,
-          name: data.name || null,
-          avatar: data.avatar || null,
-          phone: data.phone || null,
-          // Note: firebaseUid is not in the current schema, but we'll handle it in the context
-        }
-      })
-    },
-    {
-      email: data.email,
-      hasName: data.name ? 'true' : 'false',
-      hasAvatar: data.avatar ? 'true' : 'false',
-      hasPhone: data.phone ? 'true' : 'false'
-    }
-  )
+// For now, let's create simplified functions that will work with the existing codebase
+// These will be placeholders until we can properly configure Firebase Data Connect
+
+// User functions
+export const createUser = async (email: string, name?: string, avatar?: string, phone?: string) => {
+  return withErrorHandling('createUser', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { email, name: name || 'unnamed' })
 }
 
 export const getUserByEmail = async (email: string) => {
-  return withErrorHandling(
-    'getUserByEmail',
-    async () => {
-      return await prisma.user.findMany({
-        where: {
-          email,
-          ...withoutDeleted
-        }
-      })
-    },
-    {
-      email
-    }
-  )
+  return withErrorHandling('getUserByEmail', async () => {
+    // TODO: Implement Firebase Data Connect query
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { email })
 }
 
-export const getUserById = async (id: string) => {
-  return withErrorHandling(
-    'getUserById',
-    async () => {
-      return await prisma.user.findUnique({
-        where: {
-          id,
-          ...withoutDeleted
-        }
-      })
-    },
-    {
-      userId: id
-    }
-  )
+export const updateUser = async (id: string, data: { name?: string; avatar?: string; phone?: string }) => {
+  return withErrorHandling('updateUser', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { userId: id })
 }
 
-export const updateUser = async (id: string, data: {
-  name?: string | null
-  avatar?: string | null
-  phone?: string | null
-}) => {
-  return withErrorHandling(
-    'updateUser',
-    async () => {
-      return await prisma.user.update({
-        where: {
-          id,
-          ...withoutDeleted
-        },
-        data
-      })
-    },
-    {
-      userId: id,
-      updateFields: Object.keys(data).join(',')
-    }
-  )
+// Child functions
+export const getChildrenByOwner = async (ownerId: string) => {
+  return withErrorHandling('getChildrenByOwner', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { ownerId })
 }
 
-export const deleteUser = async (id: string) => {
-  return await softDelete(prisma.user, id)
+export const createChild = async (childData: any) => {
+  return withErrorHandling('createChild', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { ownerId: childData.ownerId })
 }
 
-// Entry operations
-export const getEntries = async (childId: string, filters?: {
-  tags?: string[]
-  priority?: string
-  assignedToId?: string
-  isCompleted?: boolean
-}) => {
-  return withErrorHandling(
-    'getEntries',
-    async () => {
-      const where: any = {
-        childId,
-        ...withoutDeleted
-      }
-
-      if (filters?.tags?.length) {
-        where.tags = { hasEvery: filters.tags }
-      }
-
-      if (filters?.priority) {
-        where.priority = filters.priority
-      }
-
-      if (filters?.assignedToId) {
-        where.assignedToId = filters.assignedToId
-      }
-
-      if (filters?.isCompleted !== undefined) {
-        where.completedAt = filters.isCompleted ? { not: null } : null
-      }
-
-      return await prisma.entry.findMany({
-        where,
-        include: {
-          user: true,
-          assignedTo: true,
-          assignedBy: true
-        },
-        orderBy: { createdAt: 'desc' }
-      })
-    },
-    {
-      childId,
-      hasFilters: filters ? 'true' : 'false',
-      filterCount: filters ? Object.keys(filters).length.toString() : '0'
-    }
-  )
+// Message functions
+export const getMessagesByChild = async (childId: string) => {
+  return withErrorHandling('getMessagesByChild', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
 }
 
-export const createEntry = async (data: {
-  title: string
-  description?: string
-  data?: any
-  priority?: string
-  tags?: string[]
-  dueDate?: Date
-  assignedToId?: string
-  userId: string
-  childId: string
-}) => {
-  return withErrorHandling(
-    'createEntry',
-    async () => {
-      return await prisma.entry.create({
-        data: {
-          ...data,
-          assignedById: data.userId // Set the creator as assignedBy
-        },
-        include: {
-          user: true,
-          assignedTo: true,
-          assignedBy: true
-        }
-      })
-    },
-    {
-      childId: data.childId,
-      userId: data.userId,
-      hasDescription: data.description ? 'true' : 'false',
-      priority: data.priority || 'none',
-      tagCount: data.tags?.length.toString() || '0'
-    }
-  )
-}
-
-export const updateEntry = async (id: string, data: {
-  title?: string
-  description?: string
-  data?: any
-  priority?: string
-  tags?: string[]
-  dueDate?: Date
-  assignedToId?: string
-  completedAt?: Date
-  privateAt?: Date
-  pinnedAt?: Date
-}) => {
-  return withErrorHandling(
-    'updateEntry',
-    async () => {
-      return await prisma.entry.update({
-        where: { id, ...withoutDeleted },
-        data,
-        include: {
-          user: true,
-          assignedTo: true,
-          assignedBy: true
-        }
-      })
-    },
-    {
-      entryId: id,
-      updateFields: Object.keys(data).join(','),
-      fieldCount: Object.keys(data).length.toString()
-    }
-  )
-}
-
-export const deleteEntry = async (id: string) => {
-  return await softDelete(prisma.entry, id)
-}
-
-// Medication operations
-export const getMedications = async (childId: string, activeOnly = true) => {
-  return withErrorHandling(
-    'getMedications',
-    async () => {
-      const where: any = {
-        childId,
-        ...withoutDeleted
-      }
-
-      if (activeOnly) {
-        where.activeAt = { not: null }
-        where.inactiveAt = null
-      }
-
-      return await prisma.medication.findMany({
-        where,
-        include: {
-          logs: {
-            where: withoutDeleted,
-            orderBy: { administeredAt: 'desc' }
-          }
-        }
-      })
-    },
-    {
-      childId,
-      activeOnly: activeOnly.toString()
-    }
-  )
-}
-
-export const createMedication = async (data: {
-  name: string
-  dosage: string
-  timing: string
-  frequency?: string
-  notes?: string
-  childId: string
-}) => {
-  return withErrorHandling(
-    'createMedication',
-    async () => {
-      return await prisma.medication.create({ data })
-    },
-    {
-      childId: data.childId,
-      medicationName: data.name,
-      dosage: data.dosage,
-      timing: data.timing
-    }
-  )
-}
-
-export const logMedication = async (data: {
-  medicationId: string
-  administeredBy: string
-  dosageGiven: string
-  notes?: string
-  administeredAt?: Date
-}) => {
-  return withErrorHandling(
-    'logMedication',
-    async () => {
-      return await prisma.medicationLog.create({ data })
-    },
-    {
-      medicationId: data.medicationId,
-      administeredBy: data.administeredBy,
-      dosageGiven: data.dosageGiven
-    }
-  )
-}
-
-export const deleteMedication = async (id: string) => {
-  return await softDelete(prisma.medication, id)
-}
-
-// Medical measurements
-export const getMedicalMeasurements = async (childId: string, type?: string) => {
-  return withErrorHandling(
-    'getMedicalMeasurements',
-    async () => {
-      const where: any = {
-        childId,
-        ...withoutDeleted
-      }
-
-      if (type) {
-        where.type = type
-      }
-
-      return await prisma.medicalMeasurement.findMany({
-        where,
-        orderBy: { measuredAt: 'desc' }
-      })
-    },
-    {
-      childId,
-      type: type || 'all',
-      hasTypeFilter: type ? 'true' : 'false'
-    }
-  )
-}
-
-export const createMedicalMeasurement = async (data: {
-  type: string
-  value: number
-  unit: string
-  notes?: string
-  additionalValue?: number
-  testName?: string
-  normalRange?: string
-  measuredBy?: string
-  childId: string
-}) => {
-  return withErrorHandling(
-    'createMedicalMeasurement',
-    async () => {
-      return await prisma.medicalMeasurement.create({ data })
-    },
-    {
-      childId: data.childId,
-      type: data.type,
-      value: data.value.toString(),
-      unit: data.unit,
-      measuredBy: data.measuredBy || 'unknown'
-    }
-  )
-}
-
-export const deleteMedicalMeasurement = async (id: string) => {
-  return await softDelete(prisma.medicalMeasurement, id)
-}
-
-// Reminders
-export const getReminders = async (childId: string, activeOnly = true) => {
-  return withErrorHandling(
-    'getReminders',
-    async () => {
-      const where: any = {
-        childId,
-        ...withoutDeleted
-      }
-
-      if (activeOnly) {
-        where.completedAt = null
-      }
-
-      return await prisma.reminder.findMany({
-        where,
-        orderBy: { nextDueAt: 'asc' }
-      })
-    },
-    {
-      childId,
-      activeOnly: activeOnly.toString()
-    }
-  )
-}
-
-export const createReminder = async (data: {
-  title: string
-  description?: string
-  type: string
-  frequency?: string
-  resetOnCompletion?: boolean
-  nextDueAt?: Date
-  assignedTo?: string
-  childId: string
-}) => {
-  return withErrorHandling(
-    'createReminder',
-    async () => {
-      return await prisma.reminder.create({ data })
-    },
-    {
-      childId: data.childId,
-      title: data.title,
-      type: data.type,
-      frequency: data.frequency || 'none',
-      assignedTo: data.assignedTo || 'unassigned'
-    }
-  )
-}
-
-export const deleteReminder = async (id: string) => {
-  return await softDelete(prisma.reminder, id)
-}
-
-// Messages
-export const getMessages = async (childId: string, limit = 50) => {
-  return withErrorHandling(
-    'getMessages',
-    async () => {
-      return await prisma.message.findMany({
-        where: {
-          childId,
-          ...withoutDeleted
-        },
-        include: { user: true },
-        orderBy: { createdAt: 'desc' },
-        take: limit
-      })
-    },
-    {
-      childId,
-      limit: limit.toString()
-    }
-  )
-}
-
-export const createMessage = async (data: {
+export const createMessage = async (messageData: {
   content: string
-  type?: string
-  mentionedUsers?: string[]
-  tags?: string[]
-  attachments?: string[]
-  userId: string
+  authorId: string
   childId: string
+  replyToId?: string
 }) => {
-  return withErrorHandling(
-    'createMessage',
-    async () => {
-      return await prisma.message.create({
-        data,
-        include: { user: true }
-      })
-    },
-    {
-      childId: data.childId,
-      userId: data.userId,
-      type: data.type || 'text',
-      contentLength: data.content.length.toString(),
-      hasMentions: data.mentionedUsers && data.mentionedUsers.length > 0 ? 'true' : 'false',
-      hasAttachments: data.attachments && data.attachments.length > 0 ? 'true' : 'false'
-    }
-  )
+  return withErrorHandling('createMessage', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { authorId: messageData.authorId, childId: messageData.childId })
+}
+
+export const updateMessage = async (id: string, content: string) => {
+  return withErrorHandling('updateMessage', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { messageId: id })
 }
 
 export const deleteMessage = async (id: string) => {
-  return await softDelete(prisma.message, id)
+  return withErrorHandling('deleteMessage', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { messageId: id })
 }
 
-// Contacts
-export const getContacts = async (childId: string, type?: string) => {
-  return withErrorHandling(
-    'getContacts',
-    async () => {
-      const where: any = {
-        childId,
-        ...withoutDeleted
-      }
-
-      if (type) {
-        where.type = type
-      }
-
-      return await prisma.contact.findMany({
-        where,
-        orderBy: { name: 'asc' }
-      })
-    },
-    {
-      childId,
-      type: type || 'all',
-      hasTypeFilter: type ? 'true' : 'false'
-    }
-  )
-}
-
-export const createContact = async (data: {
-  name: string
-  type: string
-  phone?: string
-  email?: string
-  address?: string
-  specialty?: string
-  department?: string
-  hospital?: string
-  availability?: string
-  notes?: string
-  childId: string
+// Message attachment functions
+export const createMessageAttachment = async (attachmentData: {
+  messageId: string
+  fileName: string
+  originalName: string
+  mimeType: string
+  size: number
+  url: string
+  thumbnailUrl?: string
 }) => {
-  return withErrorHandling(
-    'createContact',
-    async () => {
-      return await prisma.contact.create({ data })
-    },
-    {
-      childId: data.childId,
-      name: data.name,
-      type: data.type,
-      specialty: data.specialty || 'none',
-      hospital: data.hospital || 'unknown'
-    }
-  )
+  return withErrorHandling('createMessageAttachment', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { messageId: attachmentData.messageId, fileName: attachmentData.fileName })
 }
 
-export const deleteContact = async (id: string) => {
-  return await softDelete(prisma.contact, id)
+export const deleteMessageAttachment = async (id: string) => {
+  return withErrorHandling('deleteMessageAttachment', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { attachmentId: id })
 }
 
-// Invitations
-export const createInvitation = async (data: {
-  email: string
-  role: string
-  expiresAt: Date
-  senderId: string
-  childId: string
-}) => {
-  return withErrorHandling(
-    'createInvitation',
-    async () => {
-      const token = Math.random().toString(36).substring(2, 15)
-
-      return await prisma.invitation.create({
-        data: {
-          ...data,
-          token
-        }
-      })
-    },
-    {
-      childId: data.childId,
-      senderId: data.senderId,
-      email: data.email,
-      role: data.role
-    }
-  )
-}
-
-export const acceptInvitation = async (token: string, userId: string) => {
-  return withErrorHandling(
-    'acceptInvitation',
-    async () => {
-      const invitation = await prisma.invitation.findUnique({
-        where: { token, ...withoutDeleted }
-      })
-
-      if (!invitation || invitation.expiresAt < new Date()) {
-        throw new Error('Invalid or expired invitation')
-      }
-
-      // Create collaboration
-      await prisma.collaboration.create({
-        data: {
-          userId,
-          childId: invitation.childId,
-          role: invitation.role
-        }
-      })
-
-      // Update invitation
-      return await prisma.invitation.update({
-        where: { token },
-        data: {
-          status: 'accepted',
-          acceptedAt: new Date(),
-          receiverId: userId
-        }
-      })
-    },
-    {
-      token,
-      userId
-    }
-  )
-}
-
-export const deleteInvitation = async (id: string) => {
-  return await softDelete(prisma.invitation, id)
-}
-
-// Notifications
-export const getNotifications = async (userId: string, unreadOnly = false) => {
-  return withErrorHandling(
-    'getNotifications',
-    async () => {
-      const where: any = {
-        userId,
-        ...withoutDeleted
-      }
-
-      if (unreadOnly) {
-        where.readAt = null
-      }
-
-      return await prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' }
-      })
-    },
-    {
-      userId,
-      unreadOnly: unreadOnly.toString()
-    }
-  )
-}
-
-export const createNotification = async (data: {
-  title: string
-  message: string
-  type: string // "entry", "reminder", "message", "medication", "contact", "invitation", "collaboration", "system"
-  relatedItemId?: string // ID of the related item
-  data?: any
-  scheduledAt?: Date
+// Message mention functions
+export const createMessageMention = async (mentionData: {
+  messageId: string
   userId: string
-  childId?: string
+  startIndex: number
+  endIndex: number
 }) => {
-  return withErrorHandling(
-    'createNotification',
-    async () => {
-      return await prisma.notification.create({ data })
-    },
-    {
-      userId: data.userId,
-      childId: data.childId || 'none',
-      type: data.type,
-      relatedItemId: data.relatedItemId || 'none',
-      hasScheduledAt: data.scheduledAt ? 'true' : 'false'
-    }
-  )
+  return withErrorHandling('createMessageMention', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { messageId: mentionData.messageId, userId: mentionData.userId })
 }
 
-export const markNotificationRead = async (id: string) => {
-  return withErrorHandling(
-    'markNotificationRead',
-    async () => {
-      return await prisma.notification.update({
-        where: { id, ...withoutDeleted },
-        data: { readAt: new Date() }
-      })
-    },
-    {
-      notificationId: id
-    }
-  )
+export const deleteMessageMention = async (id: string) => {
+  return withErrorHandling('deleteMessageMention', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { mentionId: id })
 }
 
-export const deleteNotification = async (id: string) => {
-  return await softDelete(prisma.notification, id)
-}
-
-// Helper function to create notifications for specific models
-export const createNotificationForItem = async (params: {
-  title: string
-  message: string
-  modelType: 'entry' | 'reminder' | 'message' | 'medication' | 'contact' | 'invitation' | 'collaboration'
-  relatedItemId: string
-  userId: string
-  childId?: string
-  data?: any
-  scheduledAt?: Date
+// Message link functions
+export const createMessageLink = async (linkData: {
+  messageId: string
+  entityType: string
+  entityId: string
+  linkText: string
+  startIndex: number
+  endIndex: number
 }) => {
-  return withErrorHandling(
-    'createNotificationForItem',
-    async () => {
-      return await createNotification({
-        title: params.title,
-        message: params.message,
-        type: params.modelType,
-        relatedItemId: params.relatedItemId,
-        userId: params.userId,
-        childId: params.childId,
-        data: params.data,
-        scheduledAt: params.scheduledAt
-      })
-    },
-    {
-      modelType: params.modelType,
-      relatedItemId: params.relatedItemId,
-      userId: params.userId,
-      childId: params.childId || 'none'
-    }
-  )
+  return withErrorHandling('createMessageLink', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { messageId: linkData.messageId, entityType: linkData.entityType })
 }
 
-// Helper function to get notifications for a specific item
-export const getNotificationsForItem = async (modelType: string, relatedItemId: string) => {
-  return await prisma.notification.findMany({
-    where: {
-      type: modelType,
-      relatedItemId,
-      ...withoutDeleted
-    },
-    include: {
-      user: true,
-      child: true
-    },
-    orderBy: { createdAt: 'desc' }
-  })
+export const deleteMessageLink = async (id: string) => {
+  return withErrorHandling('deleteMessageLink', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { linkId: id })
 }
 
-// Collaborations
+// Helper functions for entity linking
+export const getLinkableEntries = async (childId: string) => {
+  return withErrorHandling('getLinkableEntries', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getLinkableMedications = async (childId: string) => {
+  return withErrorHandling('getLinkableMedications', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getLinkableReminders = async (childId: string) => {
+  return withErrorHandling('getLinkableReminders', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getLinkableContacts = async (childId: string) => {
+  return withErrorHandling('getLinkableContacts', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getLinkableMedicalData = async (childId: string) => {
+  return withErrorHandling('getLinkableMedicalData', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getCollaboratorsByChild = async (childId: string) => {
+  return withErrorHandling('getCollaboratorsByChild', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+// Batch operations for complex messages
+export const createMessageWithMentionsAndLinks = async (
+  messageData: {
+    content: string
+    authorId: string
+    childId: string
+    replyToId?: string
+  },
+  mentions: Array<{
+    userId: string
+    startIndex: number
+    endIndex: number
+  }>,
+  links: Array<{
+    entityType: string
+    entityId: string
+    linkText: string
+    startIndex: number
+    endIndex: number
+  }>,
+  attachments: Array<{
+    fileName: string
+    originalName: string
+    mimeType: string
+    size: number
+    url: string
+    thumbnailUrl?: string
+  }>
+) => {
+  return withErrorHandling('createMessageWithMentionsAndLinks', async () => {
+    // TODO: Implement comprehensive message creation with Firebase Data Connect
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { authorId: messageData.authorId, childId: messageData.childId })
+}
+
+// Legacy functions for backward compatibility
+export const getEntries = async (childId: string) => {
+  return withErrorHandling('getEntries', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
+}
+
+export const getNotifications = async (userId: string, childId?: string) => {
+  return withErrorHandling('getNotifications', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { userId, childId: childId || 'all' })
+}
+
 export const getCollaborations = async (childId: string) => {
-  return await prisma.collaboration.findMany({
-    where: {
-      childId,
-      ...withoutDeleted
-    },
-    include: { user: true }
-  })
+  return withErrorHandling('getCollaborations', async () => {
+    // TODO: Implement Firebase Data Connect query
+    return []
+  }, { childId })
 }
 
 export const deleteCollaboration = async (id: string) => {
-  return await softDelete(prisma.collaboration, id)
+  return withErrorHandling('deleteCollaboration', async () => {
+    // TODO: Implement Firebase Data Connect mutation
+    throw new Error('Firebase Data Connect not yet configured')
+  }, { collaborationId: id })
 }
 
-// Export prisma client for direct use
-export { prisma }
-export default prisma
+// Export the data connect instance for direct use
+export { dataConnect }
+export default dataConnect

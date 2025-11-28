@@ -493,3 +493,251 @@ mutation SoftDeleteCollaboration($id: String!) {
     deletedAt
   }
 }
+
+# Message mutations
+mutation CreateMessage($content: String!, $authorId: String!, $childId: String!, $replyToId: String) {
+  message_insert(data: {
+    content: $content,
+    authorId: $authorId,
+    childId: $childId,
+    replyToId: $replyToId,
+    isEdited: false
+  }) {
+    id
+    content
+    isEdited
+    editedAt
+    createdAt
+    updatedAt
+    replyToId
+    author {
+      id
+      name
+      email
+      avatar
+    }
+    child {
+      id
+      name
+    }
+  }
+}
+
+mutation UpdateMessage($id: String!, $content: String!) {
+  message_update(id: $id, data: {
+    content: $content,
+    isEdited: true,
+    editedAt: { serverTimestamp: true }
+  }) {
+    id
+    content
+    isEdited
+    editedAt
+    createdAt
+    updatedAt
+    author {
+      id
+      name
+      email
+      avatar
+    }
+  }
+}
+
+mutation SoftDeleteMessage($id: String!) {
+  message_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Message attachment mutations
+mutation CreateMessageAttachment(
+  $messageId: String!,
+  $fileName: String!,
+  $originalName: String!,
+  $mimeType: String!,
+  $size: Int!,
+  $url: String!,
+  $thumbnailUrl: String
+) {
+  messageAttachment_insert(data: {
+    messageId: $messageId,
+    fileName: $fileName,
+    originalName: $originalName,
+    mimeType: $mimeType,
+    size: $size,
+    url: $url,
+    thumbnailUrl: $thumbnailUrl
+  }) {
+    id
+    fileName
+    originalName
+    mimeType
+    size
+    url
+    thumbnailUrl
+    createdAt
+    message {
+      id
+      content
+    }
+  }
+}
+
+mutation DeleteMessageAttachment($id: String!) {
+  messageAttachment_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Message mention mutations
+mutation CreateMessageMention(
+  $messageId: String!,
+  $userId: String!,
+  $startIndex: Int!,
+  $endIndex: Int!
+) {
+  messageMention_insert(data: {
+    messageId: $messageId,
+    userId: $userId,
+    startIndex: $startIndex,
+    endIndex: $endIndex
+  }) {
+    id
+    startIndex
+    endIndex
+    user {
+      id
+      name
+      email
+      avatar
+    }
+    message {
+      id
+      content
+    }
+  }
+}
+
+mutation DeleteMessageMention($id: String!) {
+  messageMention_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Message link mutations
+mutation CreateMessageLink(
+  $messageId: String!,
+  $entityType: String!,
+  $entityId: String!,
+  $linkText: String!,
+  $startIndex: Int!,
+  $endIndex: Int!
+) {
+  messageLink_insert(data: {
+    messageId: $messageId,
+    entityType: $entityType,
+    entityId: $entityId,
+    linkText: $linkText,
+    startIndex: $startIndex,
+    endIndex: $endIndex
+  }) {
+    id
+    entityType
+    entityId
+    linkText
+    startIndex
+    endIndex
+    message {
+      id
+      content
+    }
+  }
+}
+
+mutation DeleteMessageLink($id: String!) {
+  messageLink_update(id: $id, data: {
+    deletedAt: { serverTimestamp: true }
+  }) {
+    id
+    deletedAt
+  }
+}
+
+# Batch create mutations for complex messages
+mutation CreateMessageWithAttachments(
+  $content: String!,
+  $authorId: String!,
+  $childId: String!,
+  $replyToId: String,
+  $attachments: [MessageAttachmentInput!]!
+) {
+  message_insert(data: {
+    content: $content,
+    authorId: $authorId,
+    childId: $childId,
+    replyToId: $replyToId,
+    isEdited: false
+  }) {
+    id
+    content
+    isEdited
+    editedAt
+    createdAt
+    updatedAt
+    replyToId
+    author {
+      id
+      name
+      email
+      avatar
+    }
+    child {
+      id
+      name
+    }
+  }
+}
+
+# Helper mutation for batch operations
+mutation CreateMessageMentions($mentions: [MessageMentionInput!]!) {
+  messageMention_insertMultiple(data: $mentions) {
+    id
+    startIndex
+    endIndex
+    user {
+      id
+      name
+      email
+      avatar
+    }
+    message {
+      id
+      content
+    }
+  }
+}
+
+mutation CreateMessageLinks($links: [MessageLinkInput!]!) {
+  messageLink_insertMultiple(data: $links) {
+    id
+    entityType
+    entityId
+    linkText
+    startIndex
+    endIndex
+    message {
+      id
+      content
+    }
+  }
+}

@@ -16,6 +16,7 @@ type User @table(name: "User") {
   assignedEntries: [Entry!]! @relation(name: "AssignedEntries")
   assignedByEntries: [Entry!]! @relation(name: "AssignedByEntries")
   messages: [Message!]! @relation
+  messageMentions: [MessageMention!]! @relation
   notifications: [Notification!]! @relation
   invitationsSent: [Invitation!]! @relation(name: "InvitationSender")
   invitationsReceived: [Invitation!]! @relation(name: "InvitationReceiver")
@@ -197,4 +198,150 @@ type Notification @table(name: "Notification") {
   childId: String! @col(name: "childId")
   user: User! @relation(fields: ["userId"], references: ["id"])
   child: Child! @relation(fields: ["childId"], references: ["id"])
+}
+
+type Message @table(name: "Message") {
+  id: String! @col(name: "id")
+  content: String! @col(name: "content")
+  isEdited: Boolean! @col(name: "isEdited")
+  editedAt: Timestamp @col(name: "editedAt")
+  replyToId: String @col(name: "replyToId")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  authorId: String! @col(name: "authorId")
+  childId: String! @col(name: "childId")
+  author: User! @relation(fields: ["authorId"], references: ["id"])
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+  replyTo: Message @relation(fields: ["replyToId"], references: ["id"])
+  replies: [Message!]! @relation(name: "MessageReplies")
+  attachments: [MessageAttachment!]! @relation
+  mentions: [MessageMention!]! @relation
+  links: [MessageLink!]! @relation
+}
+
+type MessageAttachment @table(name: "MessageAttachment") {
+  id: String! @col(name: "id")
+  fileName: String! @col(name: "fileName")
+  originalName: String! @col(name: "originalName")
+  mimeType: String! @col(name: "mimeType")
+  size: Int! @col(name: "size")
+  url: String! @col(name: "url")
+  thumbnailUrl: String @col(name: "thumbnailUrl")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  messageId: String! @col(name: "messageId")
+  message: Message! @relation(fields: ["messageId"], references: ["id"])
+}
+
+type MessageMention @table(name: "MessageMention") {
+  id: String! @col(name: "id")
+  startIndex: Int! @col(name: "startIndex")
+  endIndex: Int! @col(name: "endIndex")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  messageId: String! @col(name: "messageId")
+  userId: String! @col(name: "userId")
+  message: Message! @relation(fields: ["messageId"], references: ["id"])
+  user: User! @relation(fields: ["userId"], references: ["id"])
+}
+
+type MessageLink @table(name: "MessageLink") {
+  id: String! @col(name: "id")
+  entityType: String! @col(name: "entityType") # "entry", "medication", "reminder", "medicalData", "contact"
+  entityId: String! @col(name: "entityId")
+  linkText: String! @col(name: "linkText")
+  startIndex: Int! @col(name: "startIndex")
+  endIndex: Int! @col(name: "endIndex")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  messageId: String! @col(name: "messageId")
+  message: Message! @relation(fields: ["messageId"], references: ["id"])
+}
+
+type MedicalMeasurement @table(name: "MedicalMeasurement") {
+  id: String! @col(name: "id")
+  type: String! @col(name: "type") # "weight", "height", "headCircumference", "bloodPressure", "temperature", etc.
+  value: Float! @col(name: "value")
+  unit: String! @col(name: "unit")
+  notes: String @col(name: "notes")
+  measuredAt: Timestamp! @col(name: "measuredAt")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  childId: String! @col(name: "childId")
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+}
+
+type Contact @table(name: "Contact") {
+  id: String! @col(name: "id")
+  name: String! @col(name: "name")
+  relationship: String! @col(name: "relationship")
+  phone: String @col(name: "phone")
+  email: String @col(name: "email")
+  address: String @col(name: "address")
+  notes: String @col(name: "notes")
+  isEmergencyContact: Boolean! @col(name: "isEmergencyContact")
+  isPrimaryContact: Boolean! @col(name: "isPrimaryContact")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  childId: String! @col(name: "childId")
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+}
+
+type Invitation @table(name: "Invitation") {
+  id: String! @col(name: "id")
+  email: String! @col(name: "email")
+  role: String! @col(name: "role")
+  status: String! @col(name: "status") # "pending", "accepted", "declined", "expired"
+  message: String @col(name: "message")
+  expiresAt: Timestamp! @col(name: "expiresAt")
+  acceptedAt: Timestamp @col(name: "acceptedAt")
+
+  # Permissions to grant
+  canViewMedical: Boolean! @col(name: "canViewMedical")
+  canEditMedical: Boolean! @col(name: "canEditMedical")
+  canViewNotes: Boolean! @col(name: "canViewNotes")
+  canEditNotes: Boolean! @col(name: "canEditNotes")
+  canViewCalendar: Boolean! @col(name: "canViewCalendar")
+  canEditCalendar: Boolean! @col(name: "canEditCalendar")
+  canViewTodos: Boolean! @col(name: "canViewTodos")
+  canEditTodos: Boolean! @col(name: "canEditTodos")
+  canViewMessages: Boolean! @col(name: "canViewMessages")
+  canSendMessages: Boolean! @col(name: "canSendMessages")
+  canInviteOthers: Boolean! @col(name: "canInviteOthers")
+
+  createdAt: Timestamp! @col(name: "createdAt")
+  updatedAt: Timestamp! @col(name: "updatedAt")
+  deletedAt: Timestamp @col(name: "deletedAt")
+
+  # Relationships
+  childId: String! @col(name: "childId")
+  senderId: String! @col(name: "senderId")
+  receiverId: String @col(name: "receiverId")
+  child: Child! @relation(fields: ["childId"], references: ["id"])
+  sender: User! @relation(fields: ["senderId"], references: ["id"])
+  receiver: User @relation(fields: ["receiverId"], references: ["id"])
 }

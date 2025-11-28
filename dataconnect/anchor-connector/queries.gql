@@ -330,3 +330,288 @@ query GetCollaborationsByUser($userId: String!) {
     }
   }
 }
+
+# Message queries
+query GetMessagesByChild($childId: String!) {
+  messages(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { createdAt: DESC }) {
+    id
+    content
+    isEdited
+    editedAt
+    createdAt
+    updatedAt
+    replyToId
+    author {
+      id
+      name
+      email
+      avatar
+    }
+    child {
+      id
+      name
+    }
+    attachments {
+      id
+      fileName
+      originalName
+      mimeType
+      size
+      url
+      thumbnailUrl
+      createdAt
+    }
+    mentions {
+      id
+      startIndex
+      endIndex
+      user {
+        id
+        name
+        email
+        avatar
+      }
+    }
+    links {
+      id
+      entityType
+      entityId
+      linkText
+      startIndex
+      endIndex
+    }
+    replies {
+      id
+      content
+      isEdited
+      editedAt
+      createdAt
+      author {
+        id
+        name
+        email
+        avatar
+      }
+      attachments {
+        id
+        fileName
+        originalName
+        mimeType
+        size
+        url
+        thumbnailUrl
+        createdAt
+      }
+      mentions {
+        id
+        startIndex
+        endIndex
+        user {
+          id
+          name
+          email
+          avatar
+        }
+      }
+      links {
+        id
+        entityType
+        entityId
+        linkText
+        startIndex
+        endIndex
+      }
+    }
+  }
+}
+
+query GetMessage($id: String!) {
+  message(id: $id) {
+    id
+    content
+    isEdited
+    editedAt
+    createdAt
+    updatedAt
+    replyToId
+    author {
+      id
+      name
+      email
+      avatar
+    }
+    child {
+      id
+      name
+    }
+    attachments {
+      id
+      fileName
+      originalName
+      mimeType
+      size
+      url
+      thumbnailUrl
+      createdAt
+    }
+    mentions {
+      id
+      startIndex
+      endIndex
+      user {
+        id
+        name
+        email
+        avatar
+      }
+    }
+    links {
+      id
+      entityType
+      entityId
+      linkText
+      startIndex
+      endIndex
+    }
+    replies {
+      id
+      content
+      isEdited
+      editedAt
+      createdAt
+      author {
+        id
+        name
+        email
+        avatar
+      }
+      attachments {
+        id
+        fileName
+        originalName
+        mimeType
+        size
+        url
+        thumbnailUrl
+        createdAt
+      }
+      mentions {
+        id
+        startIndex
+        endIndex
+        user {
+          id
+          name
+          email
+          avatar
+        }
+      }
+      links {
+        id
+        entityType
+        entityId
+        linkText
+        startIndex
+        endIndex
+      }
+    }
+  }
+}
+
+# Helper queries for entity linking
+query GetLinkableEntries($childId: String!) {
+  entries(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { createdAt: DESC }) {
+    id
+    title
+    content
+    priority
+    createdAt
+    user {
+      id
+      name
+    }
+  }
+}
+
+query GetLinkableMedications($childId: String!) {
+  medications(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { createdAt: DESC }) {
+    id
+    name
+    dosage
+    frequency
+    startDate
+    endDate
+    createdAt
+  }
+}
+
+query GetLinkableReminders($childId: String!) {
+  reminders(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { dueDate: ASC }) {
+    id
+    title
+    description
+    dueDate
+    reminderType
+    createdAt
+  }
+}
+
+query GetLinkableContacts($childId: String!) {
+  contacts(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { name: ASC }) {
+    id
+    name
+    relationship
+    phone
+    email
+    isEmergencyContact
+    isPrimaryContact
+    createdAt
+  }
+}
+
+query GetLinkableMedicalData($childId: String!) {
+  medicalMeasurements(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }, orderBy: { measuredAt: DESC }) {
+    id
+    type
+    value
+    unit
+    notes
+    measuredAt
+    createdAt
+  }
+}
+
+# Helper query for user mentions
+query GetCollaboratorsByChild($childId: String!) {
+  collaborations(where: {
+    childId: { eq: $childId },
+    deletedAt: { eq: null }
+  }) {
+    id
+    role
+    user {
+      id
+      name
+      email
+      avatar
+    }
+  }
+}
