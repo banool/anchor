@@ -1,0 +1,25 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../packages/server/src/generated/prisma"
+  engineType = "client"
+  runtime    = "bun"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  output                      = "../packages/server/src/generated/prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName   = "t"
+  additionalProperties        = false
+  inputModel                  = true
+}
+
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+}

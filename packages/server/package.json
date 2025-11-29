@@ -1,0 +1,22 @@
+{
+  "name": "app",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch --no-clear-screen src/index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "catalog:prod",
+    "@prisma/adapter-pg": "catalog:prod",
+    "@rasla/logify": "catalog:prod",
+    "elysia": "catalog:prod",
+    "pg": "catalog:prod"
+  },
+  "devDependencies": {
+    "@prisma/client": "catalog:dev",
+    "bun-types": "catalog:dev"
+  },
+  "module": "src/index.js",
+  "overrides": {
+    "@sinclair/typebox": "catalog:dev"
+  }
+}

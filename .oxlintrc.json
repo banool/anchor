@@ -9,7 +9,8 @@
     "vitest"
   ],
   "ignorePatterns": [
+    "dist/",
     "node_modules/",
-    "dist/"
+    "packages/server/src/generated/"
   ]
 }
