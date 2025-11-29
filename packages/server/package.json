@@ -12,7 +12,6 @@
     "pg": "catalog:prod"
   },
   "devDependencies": {
-    "@prisma/client": "catalog:dev",
     "bun-types": "catalog:dev"
   },
   "module": "src/index.js",

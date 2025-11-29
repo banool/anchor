@@ -9,3 +9,4 @@
 From here: https://docs.expo.dev/guides/using-bun.
 
 - The version for `@sinclair/typebox` is pinned based on this recommendation: https://elysiajs.com/integrations/drizzle.html#installation.
+- To generate the better-auth models, run `./scripts/generate-better-auth-models.sh`. Then create a new migration: `bun prisma migrate dev -n 'add_better_auth'`

@@ -2,6 +2,8 @@ import { Elysia, t } from "elysia";
 import { prisma, initializeClient } from "./database/client";
 import { UserPlain } from "./generated/prismabox/User";
 import { User } from "./generated/prisma/client";
+import { PORT } from "./config";
+import { betterAuthElysia } from "./auth";
 
 await initializeClient();
 
@@ -17,6 +19,7 @@ const app = new Elysia()
   .onError(({ error }) => {
     console.error(`Unexpected error: ${formatError(error)}`);
   })
+  .use(betterAuthElysia)
   .get("/", () => "Hello Elysia")
   .get(
     "/user/:id",
@@ -39,6 +42,7 @@ const app = new Elysia()
       return user;
     },
     {
+      auth: true,
       response: {
         200: UserPlain,
         404: t.String(),
@@ -46,7 +50,7 @@ const app = new Elysia()
       },
     },
   )
-  .listen(3000);
+  .listen(PORT);
 
 console.log(`Elysia is running at http://${app.server?.hostname}:${app.server?.port}`);
 
