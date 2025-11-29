@@ -1,7 +1,6 @@
 import { Elysia, t } from "elysia";
-import { prisma, initializeClient } from "./database/client";
+import { initializeClient } from "./database/client";
 import { UserPlain } from "./generated/prismabox/User";
-import { User } from "./generated/prisma/client";
 import { PORT } from "./config";
 import { betterAuthElysia } from "./auth";
 
@@ -22,24 +21,13 @@ const app = new Elysia()
   .use(betterAuthElysia)
   .get("/", () => "Hello Elysia")
   .get(
-    "/user/:id",
-    async ({ params: { id }, status }) => {
-      console.log("Getting user", id);
-      let user: User | null = null;
-      try {
-        user = await prisma.user.findUnique({
-          where: { id },
-        });
-      } catch (error) {
-        // When NODE_ENV is false I would hope to see the cause in the error response
-        // as well (just the first level of cause), but we don't. It's okay though, we
-        // have the error logging from onError.
-        throw new Error("Failed to get user", { cause: error });
-      }
-
-      if (!user) throw status(404, "User not found");
-
-      return user;
+    "/user",
+    ({ user }) => {
+      return {
+        ...user,
+        // Seems like the types don't quite match up here, we have to handle image.
+        image: user.image ?? null,
+      };
     },
     {
       auth: true,
@@ -79,3 +67,5 @@ function formatError(error: unknown): string {
 
   return `${error.name}: ${error.message}${extrasStr}\n${error.stack}${causeStr}`;
 }
+
+export type App = typeof app;
