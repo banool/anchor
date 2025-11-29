@@ -3,11 +3,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { routeTree } from "./routes";
-import type { App } from "server";
 import "./styles.css";
-import { treaty } from "@elysiajs/eden";
-
-const client = treaty<App>("http://localhost:3005");
 
 const queryClient = new QueryClient();
 

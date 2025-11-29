@@ -2,15 +2,16 @@
   "name": "web",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3006",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "bun --port 3006 ./index.html",
+    "build": "bun build ./index.html --minify --outdir=dist",
+    "preview": "bun ./dist/index.html"
   },
   "dependencies": {
     "@better-fetch/fetch": "catalog:prod",
     "@elysiajs/eden": "catalog:prod",
     "@tanstack/react-query": "catalog:prod",
     "@tanstack/react-router": "catalog:prod",
+    "better-auth": "catalog:prod",
     "server": "workspace:",
     "react": "catalog:prod",
     "react-dom": "catalog:prod"
@@ -19,8 +20,6 @@
     "@types/bun": "catalog:dev",
     "@types/react": "catalog:dev",
     "@types/react-dom": "catalog:dev",
-    "@vitejs/plugin-react": "catalog:dev",
-    "elysia": "catalog:prod",
-    "vite": "catalog:dev"
+    "elysia": "catalog:prod"
   }
 }

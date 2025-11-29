@@ -36,8 +36,8 @@ function HomePage() {
           <p>Powerful data synchronization with caching, background updates, and more.</p>
         </div>
         <div className="card">
-          <h2>🚀 Vite</h2>
-          <p>Lightning fast HMR and optimized builds for the best developer experience.</p>
+          <h2>🚀 Bun</h2>
+          <p>Blazing fast bundler with zero config and native TypeScript support.</p>
         </div>
       </div>
     </div>

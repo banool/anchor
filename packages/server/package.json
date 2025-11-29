@@ -12,9 +12,11 @@
     "dev": "bun run --watch --no-clear-screen src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/cors": "catalog:prod",
     "@prisma/client": "catalog:prod",
     "@prisma/adapter-pg": "catalog:prod",
     "@rasla/logify": "catalog:prod",
+    "better-auth": "catalog:prod",
     "elysia": "catalog:prod",
     "pg": "catalog:prod"
   },

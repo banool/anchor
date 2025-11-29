@@ -1,3 +1,4 @@
+import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { initializeClient } from "./database/client";
 import { UserPlain } from "./generated/prismabox/User";
@@ -12,6 +13,12 @@ await initializeClient();
 // initializeLogger({ format: "[{timestamp}] {level}: {message}" });
 
 const app = new Elysia()
+  .use(
+    cors({
+      origin: ["http://localhost:3006"],
+      credentials: true,
+    }),
+  )
   // note that onError overrides the logger, see https://github.com/0xrasla/logify/issues/4
   // https://github.com/0xrasla/logify/issues/9
   // .use(logger({ useGlobal: true }))

@@ -18,6 +18,7 @@ import {
 export const auth = betterAuth({
   appName: "Anchor",
   basePath: "/api",
+  trustedOrigins: ["http://localhost:3006"],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
     transaction: true,

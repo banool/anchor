@@ -25,6 +25,7 @@
     "catalogs": {
       "prod": {
         "@better-fetch/fetch": "^1.1.18",
+        "@elysiajs/cors": "^1.4.0",
         "@elysiajs/eden": "^1.4.5",
         "@prisma/client": "^7.0.1",
         "@prisma/adapter-pg": "^7.0.1",
@@ -45,13 +46,11 @@
         "@types/pg": "^8.15.6",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
-        "@vitejs/plugin-react": "^4.5.0",
         "bun-types": "^1.3.3",
         "dotenv": "^17.2.3",
         "oxfmt": "^0.15.0",
         "oxlint": "^1.30.0",
         "oxlint-tsgolint": "^0.8.3",
-        "vite": "^7.0.0",
         "vitest": "^4.0.14"
       }
     }
